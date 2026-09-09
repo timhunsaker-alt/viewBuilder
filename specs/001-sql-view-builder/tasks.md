@@ -35,19 +35,19 @@ US4, US5 = P2) to enable independent implementation and testing of each story.
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create `backend/` and `frontend/` directory skeletons per plan.md Project Structure
+- [X] T001 Create `backend/` and `frontend/` directory skeletons per plan.md Project Structure
       (`backend/src/{api,models,services,db,connectors}`, `backend/tests/{unit,integration,contract}`,
       `frontend/src/{components/canvas,components/shared,pages,services}`, `frontend/tests/{unit,e2e}`)
-- [ ] T002 Initialize backend Python project in `backend/` — `pyproject.toml`/`requirements.txt`
+- [X] T002 Initialize backend Python project in `backend/` — `pyproject.toml`/`requirements.txt`
       with FastAPI, SQLAlchemy 2.x, pyodbc, Pydantic v2, Alembic, pytest, uvicorn
-- [ ] T003 [P] Initialize frontend project in `frontend/` — Vite + React 18 + TypeScript,
+- [X] T003 [P] Initialize frontend project in `frontend/` — Vite + React 18 + TypeScript,
       `@xyflow/react`, TanStack Query, Vitest, React Testing Library, Playwright
-- [ ] T004 [P] Configure backend linting/formatting (ruff + black) in `backend/pyproject.toml`
-- [ ] T005 [P] Configure frontend linting/formatting (Biome, matching this workspace's other
+- [X] T004 [P] Configure backend linting/formatting (ruff + black) in `backend/pyproject.toml`
+- [X] T005 [P] Configure frontend linting/formatting (Biome, matching this workspace's other
       React projects) in `frontend/biome.json`
-- [ ] T006 [P] Write `backend/docker/docker-compose.yml` bringing up MS SQL Server (
+- [X] T006 [P] Write `backend/docker/docker-compose.yml` bringing up MS SQL Server (
       `mcr.microsoft.com/mssql/server`) and Postgres 16, per research.md §2/§4
-- [ ] T007 [P] Write `backend/docker/mssql-init/seed.sql` creating sample legacy-shaped tables:
+- [X] T007 [P] Write `backend/docker/mssql-init/seed.sql` creating sample legacy-shaped tables:
       one plain table, one with an enum-coded status column, and one legacy
       retirement-reason table using enum codes (used by US2/US3 tests and quickstart.md)
 

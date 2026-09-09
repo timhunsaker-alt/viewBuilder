@@ -1,0 +1,51 @@
+name: viewbuilder
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "ViewBuilder_Dev123!"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  mssql-init:
+    image: mcr.microsoft.com/mssql-tools18
+    depends_on:
+      mssql:
+        condition: service_healthy
+    volumes:
+      - ./mssql-init:/mssql-init
+    entrypoint: >
+      /bin/bash -c "
+      /opt/mssql-tools18/bin/sqlcmd -C -S mssql -U sa -P 'ViewBuilder_Dev123!' -i /mssql-init/seed.sql
+      "
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: viewbuilder
+      POSTGRES_PASSWORD: viewbuilder_dev
+      POSTGRES_DB: viewbuilder_metadata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U viewbuilder -d viewbuilder_metadata"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mssql-data:
+  postgres-data:
