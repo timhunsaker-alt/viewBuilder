@@ -240,23 +240,23 @@ reported counts/sample rows match manual inspection and that no rows were writte
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T047 [P] [US4] Contract test `POST /mappings/{id}/dry-run` in
+- [X] T047 [P] [US4] Contract test `POST /mappings/{id}/dry-run` in
       `backend/tests/contract/test_dry_run.py`
-- [ ] T048 [P] [US4] Integration test: dry-run against seeded mssql fixture writes zero rows to
+- [X] T048 [P] [US4] Integration test: dry-run against seeded mssql fixture writes zero rows to
       target/audit tables and returns correct counts + sample rows (US4 AC1-AC3) in
       `backend/tests/integration/test_dry_run_no_writes.py`
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] Implement dry-run orchestration in
+- [X] T049 [US4] Implement dry-run orchestration in
       `backend/src/services/run_orchestrator.py` — reads source, applies mapping_engine
       (T038) and retirement_writer in preview mode (no writes), builds counts + capped sample
       rows, writes a `run_log_entry` with `mode=dry_run` (depends on T038, T045, T012)
-- [ ] T050 [US4] Implement `POST /mappings/{id}/dry-run` route in
+- [X] T050 [US4] Implement `POST /mappings/{id}/dry-run` route in
       `backend/src/api/runs.py` (depends on T049)
-- [ ] T051 [P] [US4] Build dry-run results view (counts, sample rows, flagged
+- [X] T051 [P] [US4] Build dry-run results view (counts, sample rows, flagged
       untranslatable rows) in `frontend/src/pages/DryRunResults.tsx`
-- [ ] T052 [US4] Wire "Run Dry Run" action from MappingEditor into DryRunResults (depends on
+- [X] T052 [US4] Wire "Run Dry Run" action from MappingEditor into DryRunResults (depends on
       T029, T051)
 
 **Checkpoint**: All P1 stories plus dry-run preview work independently.
@@ -274,36 +274,36 @@ timestamp.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T053 [P] [US5] Contract test `POST /mappings/{id}/execute` including the
+- [X] T053 [P] [US5] Contract test `POST /mappings/{id}/execute` including the
       `production_confirmation_required` 409 case (FR-016) in
       `backend/tests/contract/test_execute.py`
-- [ ] T054 [P] [US5] Integration test: execute against seeded mssql fixture writes expected
+- [X] T054 [P] [US5] Integration test: execute against seeded mssql fixture writes expected
       target/audit rows and a matching completed `run_log_entry` in
       `backend/tests/integration/test_execute_run.py`
-- [ ] T055 [P] [US5] Integration test: pre-flight schema check blocks execution with no partial
+- [X] T055 [P] [US5] Integration test: pre-flight schema check blocks execution with no partial
       writes when a mapped column/table is missing or type-incompatible (FR-015) in
       `backend/tests/integration/test_execute_schema_drift.py`
-- [ ] T056 [P] [US5] Unit test: untranslatable rows during execute are skipped and counted, not
+- [X] T056 [P] [US5] Unit test: untranslatable rows during execute are skipped and counted, not
       written with a guessed/default value (FR-008, US5 AC3) in
       `backend/tests/unit/test_execute_untranslatable.py`
-- [ ] T057 [P] [US5] Contract test `GET /runs` and `GET /runs/{id}` filtering in
+- [X] T057 [P] [US5] Contract test `GET /runs` and `GET /runs/{id}` filtering in
       `backend/tests/contract/test_runs_list.py`
 
 ### Implementation for User Story 5
 
-- [ ] T058 [US5] Implement pre-flight schema-drift check (re-introspect source/target against
+- [X] T058 [US5] Implement pre-flight schema-drift check (re-introspect source/target against
       mapping version's referenced tables/columns) in
       `backend/src/services/run_orchestrator.py` (depends on T013, T049)
-- [ ] T059 [US5] Implement execute orchestration — real reads/translations/writes to target and
+- [X] T059 [US5] Implement execute orchestration — real reads/translations/writes to target and
       retirement-audit tables, production-confirmation gate check, completed `run_log_entry`
       write in `backend/src/services/run_orchestrator.py` (depends on T049, T058)
-- [ ] T060 [US5] Implement `POST /mappings/{id}/execute` route with `confirm_production` body
+- [X] T060 [US5] Implement `POST /mappings/{id}/execute` route with `confirm_production` body
       handling and 409 response in `backend/src/api/runs.py` (depends on T059)
-- [ ] T061 [US5] Implement `GET /runs`, `GET /runs/{id}` routes (filter by
+- [X] T061 [US5] Implement `GET /runs`, `GET /runs/{id}` routes (filter by
       `mapping_definition_id`, `mode`) in `backend/src/api/runs.py` (depends on T012)
-- [ ] T062 [P] [US5] Build run history page (list + detail view of run_log_entry) in
+- [X] T062 [P] [US5] Build run history page (list + detail view of run_log_entry) in
       `frontend/src/pages/RunHistory.tsx`
-- [ ] T063 [US5] Wire "Execute" action (with production-confirmation prompt) from
+- [X] T063 [US5] Wire "Execute" action (with production-confirmation prompt) from
       DryRunResults into the execute flow (depends on T051, T062)
 
 **Checkpoint**: All user stories (US1-US5) are independently functional — full spec delivered.

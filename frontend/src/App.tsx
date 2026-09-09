@@ -1,7 +1,9 @@
 import { Route, Routes } from "react-router-dom";
+import { DryRunResults } from "./pages/DryRunResults";
 import { EnumTranslationEditor } from "./pages/EnumTranslationEditor";
 import { MappingEditor } from "./pages/MappingEditor";
 import { RetirementConfig } from "./pages/RetirementConfig";
+import { RunHistory } from "./pages/RunHistory";
 import { TablePicker } from "./pages/TablePicker";
 
 export function App() {
@@ -10,8 +12,10 @@ export function App() {
       <Route path="/" element={<TablePicker />} />
       <Route path="/mappings/new" element={<MappingEditor />} />
       <Route path="/mappings/:mappingId" element={<MappingEditor />} />
+      <Route path="/mappings/:mappingId/dry-run" element={<DryRunResults />} />
       <Route path="/enum-translations" element={<EnumTranslationEditor />} />
       <Route path="/retirement/new" element={<RetirementConfig />} />
+      <Route path="/runs" element={<RunHistory />} />
     </Routes>
   );
 }

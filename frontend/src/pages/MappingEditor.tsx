@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { type ColumnMappingLink, MappingCanvas } from "../components/canvas/MappingCanvas";
 import { api } from "../services/api";
 
@@ -183,6 +183,7 @@ export function MappingEditor() {
               <li key={version.id}>v{version.version_number}</li>
             ))}
           </ul>
+          <Link to={`/mappings/${mappingId}/dry-run`}>Run dry run</Link>
         </section>
       )}
     </main>
