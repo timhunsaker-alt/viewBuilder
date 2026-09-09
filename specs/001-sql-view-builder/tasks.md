@@ -154,35 +154,35 @@ missing code.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T031 [P] [US2] Contract test `POST /enum-translations` and
+- [X] T031 [P] [US2] Contract test `POST /enum-translations` and
       `POST /enum-translations/{id}/versions` in
       `backend/tests/contract/test_enum_translations_crud.py`
-- [ ] T032 [P] [US2] Unit test: enum translation applies known codes and flags unknown codes
+- [X] T032 [P] [US2] Unit test: enum translation applies known codes and flags unknown codes
       without defaulting/guessing (Constitution Principle III, FR-008) in
       `backend/tests/unit/test_enum_translation.py`
-- [ ] T033 [P] [US2] Unit test: translation-table version uniqueness of codes within a version
+- [X] T033 [P] [US2] Unit test: translation-table version uniqueness of codes within a version
       in `backend/tests/unit/test_enum_translation.py`
-- [ ] T034 [P] [US2] Integration test against seeded mssql fixture: mapping with an attached
+- [X] T034 [P] [US2] Integration test against seeded mssql fixture: mapping with an attached
       enum-translation table dry-runs to translated sample rows and a correct
       `untranslatable_rows_flagged` count in `backend/tests/integration/test_enum_dry_run.py`
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Implement enum-translation service in
+- [X] T035 [US2] Implement enum-translation service in
       `backend/src/services/enum_translation_service.py` — create table + first version, save
       edit as new version, unique-code validation (depends on T011)
-- [ ] T036 [US2] Implement `POST /enum-translations`, `GET /enum-translations`,
+- [X] T036 [US2] Implement `POST /enum-translations`, `GET /enum-translations`,
       `GET /enum-translations/{id}`, `POST /enum-translations/{id}/versions` routes in
       `backend/src/api/enum_translations.py` (depends on T035)
-- [ ] T037 [US2] Extend `column_links` handling in mapping_service.py to accept an optional
+- [X] T037 [US2] Extend `column_links` handling in mapping_service.py to accept an optional
       `enum_translation_version_id` per link, validating it was attached to that source column
       (depends on T024, T035)
-- [ ] T038 [US2] Implement the translation-application step of the mapping engine in
+- [X] T038 [US2] Implement the translation-application step of the mapping engine in
       `backend/src/services/mapping_engine.py` — given a row and a mapping version, apply
       enum translations and collect untranslatable rows (depends on T037)
-- [ ] T039 [P] [US2] Build enum-translation-table editor UI (create/edit entries, versioned) in
+- [X] T039 [P] [US2] Build enum-translation-table editor UI (create/edit entries, versioned) in
       `frontend/src/pages/EnumTranslationEditor.tsx`
-- [ ] T040 [US2] Wire enum-column detection + translation-table attach UI into
+- [X] T040 [US2] Wire enum-column detection + translation-table attach UI into
       `frontend/src/pages/MappingEditor.tsx` (depends on T028, T039)
 
 **Checkpoint**: User Stories 1 AND 2 both work independently.

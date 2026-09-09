@@ -27,6 +27,12 @@ interface LocationState {
   table?: string;
 }
 
+interface EnumTranslationTable {
+  id: string;
+  name: string;
+  current_version_id: string | null;
+}
+
 export function MappingEditor() {
   const { mappingId } = useParams();
   const location = useLocation();
@@ -79,6 +85,23 @@ export function MappingEditor() {
     },
   });
 
+  const enumTranslationsQuery = useQuery({
+    queryKey: ["enum-translations"],
+    queryFn: () => api.get<EnumTranslationTable[]>("/enum-translations"),
+  });
+
+  function setLinkTranslation(index: number, translationVersionId: string | undefined) {
+    setLinks((current) =>
+      current.map((link, i) =>
+        i === index
+          ? translationVersionId
+            ? { ...link, enumTranslationVersionId: translationVersionId }
+            : { sourceColumn: link.sourceColumn, targetColumn: link.targetColumn }
+          : link,
+      ),
+    );
+  }
+
   const sourceColumns = sourceSchemaQuery.data?.columns?.map((c) => c.name) ?? [];
   const targetColumns = sourceSchemaQuery.data?.columns?.map((c) => c.name) ?? [];
 
@@ -99,6 +122,50 @@ export function MappingEditor() {
         links={links}
         onLinksChange={setLinks}
       />
+
+      {links.length > 0 && (
+        <section>
+          <h2>Column links</h2>
+          <p>
+            For a source column whose values are enum codes, attach a translation table so the
+            target receives the human-readable value instead of the raw code (FR-005).
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Source column</th>
+                <th>Target column</th>
+                <th>Enum translation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {links.map((link, index) => (
+                <tr key={`${link.sourceColumn}->${link.targetColumn}`}>
+                  <td>{link.sourceColumn}</td>
+                  <td>{link.targetColumn}</td>
+                  <td>
+                    <select
+                      value={link.enumTranslationVersionId ?? ""}
+                      onChange={(event) =>
+                        setLinkTranslation(index, event.target.value || undefined)
+                      }
+                    >
+                      <option value="">None</option>
+                      {enumTranslationsQuery.data
+                        ?.filter((t) => t.current_version_id)
+                        .map((t) => (
+                          <option key={t.id} value={t.current_version_id ?? ""}>
+                            {t.name}
+                          </option>
+                        ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       <button
         type="button"

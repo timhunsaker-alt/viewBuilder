@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.models.connection_config import ConnectionConfig
+from src.models.enum_translation import EnumTranslationVersion
 from src.models.mapping import MAPPING_KINDS, MappingDefinition, MappingVersion
 
 logger = logging.getLogger("viewbuilder.mapping_service")
@@ -46,6 +47,15 @@ class MappingService:
                 raise MappingValidationError(
                     f"column link {link} is missing a sourceColumn or targetColumn"
                 )
+            translation_version_id = link.get("enumTranslationVersionId")
+            if translation_version_id is not None:
+                version = self.db.get(EnumTranslationVersion, translation_version_id)
+                if version is None:
+                    raise MappingValidationError(
+                        f"column link for '{link['sourceColumn']}' references enum "
+                        f"translation version {translation_version_id}, which does not exist "
+                        "(FR-005: a translation table must be attached before it can be used)"
+                    )
 
     def create_mapping(
         self,
