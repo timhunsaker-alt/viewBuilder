@@ -75,6 +75,13 @@ def get_inspector(config: ConnectionConfig) -> Inspector:
 
 
 def list_tables(config: ConnectionConfig) -> list[str]:
+    """List selectable source/target relations: base tables AND views.
+
+    A SQL Server VIEW (e.g. one joining several legacy tables together) is a completely
+    standard read source for a legacy database and must be pickable the same way a table
+    is — the mapping engine only ever SELECTs from `source_table`, so a view works
+    identically to a table for every downstream operation (FR-001/FR-002).
+    """
     inspector = get_inspector(config)
     try:
         tables = []
@@ -83,6 +90,8 @@ def list_tables(config: ConnectionConfig) -> list[str]:
                 continue
             for table in inspector.get_table_names(schema=schema):
                 tables.append(f"{schema}.{table}")
+            for view in inspector.get_view_names(schema=schema):
+                tables.append(f"{schema}.{view}")
         return sorted(tables)
     except Exception as exc:
         raise ConnectionUnreachableError(config.name, cause=exc) from exc

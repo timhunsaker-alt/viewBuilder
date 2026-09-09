@@ -23,7 +23,7 @@ from decimal import Decimal
 
 from sqlalchemy import MetaData, Table, insert, select
 from sqlalchemy.engine import Connection
-from sqlalchemy.exc import DBAPIError, OperationalError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
 from src.connectors.mssql import ConnectionUnreachableError, build_engine, get_columns
@@ -47,6 +47,17 @@ class ProductionConfirmationRequiredError(Exception):
 
 class SchemaDriftError(Exception):
     """FR-015: a mapped table/column no longer exists (or is missing) at execute time."""
+
+
+class WriteConstraintViolationError(Exception):
+    """A write was rejected by the target database's own constraints (NOT NULL, PK,
+    FK, CHECK, ...) — the connection worked fine; the row itself was invalid for that
+    table's schema. Distinct from ConnectionUnreachableError, which means the
+    connection/query itself could not be used at all."""
+
+    def __init__(self, cause: Exception):
+        self.cause = cause
+        super().__init__(f"target database rejected a write: {cause}")
 
 
 @dataclass
@@ -259,11 +270,20 @@ def run_mapping(
                 )
     except ConnectionUnreachableError:
         raise
-    except (DBAPIError, OperationalError) as exc:
-        # A failure actually establishing/using the DB connection (as opposed to a
-        # schema-drift/production-confirmation failure already raised above, or a bug
-        # in the mapping/retirement logic itself) is reported the same way
-        # get_columns()/list_tables() report it elsewhere.
+    except IntegrityError as exc:
+        # The connection and query were both fine — the target database itself
+        # rejected a specific row (NOT NULL/PK/FK/CHECK). This is a data problem the
+        # operator needs to see clearly, not a connectivity problem (Constitution
+        # Principle I: reviewable migrations require accurate failure diagnostics).
+        # Must be caught before the broader DBAPIError below, since IntegrityError is
+        # itself a DBAPIError subclass.
+        raise WriteConstraintViolationError(exc) from exc
+    except DBAPIError as exc:
+        # Any other failure actually establishing/using the DB connection (driver
+        # missing, network unreachable, auth rejected, ...) — as opposed to a
+        # schema-drift/production-confirmation failure already raised above, a bug in
+        # the mapping/retirement logic itself, or the IntegrityError case above — is
+        # reported the same way get_columns()/list_tables() report it elsewhere.
         raise ConnectionUnreachableError(
             f"{source_connection.name} / {target_connection.name}", cause=exc
         ) from exc

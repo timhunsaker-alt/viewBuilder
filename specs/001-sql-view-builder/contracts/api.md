@@ -123,7 +123,11 @@ duplicate code within a version, or a malformed entry), `connection_unreachable`
 (`GET /connections/{id}/schema`, dry-run, or execute — the source or target SQL Server could
 not be reached), `schema_mismatch` (`POST /mappings/{id}/execute` only — pre-flight
 schema-drift check, FR-015), `production_confirmation_required` (`POST
-/mappings/{id}/execute` only — FR-016, HTTP 409).
+/mappings/{id}/execute` only — FR-016, HTTP 409), `write_constraint_violation`
+(`POST /mappings/{id}/execute` only — the target database itself rejected a specific row
+via a NOT NULL/PK/FK/CHECK constraint, e.g. a mapping omits a NOT NULL target column; HTTP
+422. Distinct from `connection_unreachable`: the connection and query both worked, the row
+was invalid for that table's schema).
 
 Untranslatable rows (Principle III / FR-008) and duplicate-retirement rows (FR-011) are
 **not** modeled as request-level errors — a single row failing either check does not fail the

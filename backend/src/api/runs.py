@@ -14,6 +14,7 @@ from src.services.run_orchestrator import (
     MappingNotFoundError,
     ProductionConfirmationRequiredError,
     SchemaDriftError,
+    WriteConstraintViolationError,
     run_mapping,
 )
 
@@ -84,6 +85,8 @@ def execute(mapping_id: uuid.UUID, body: ExecuteRequest, db: Session = Depends(g
         raise ApiError("production_confirmation_required", str(exc), 409) from exc
     except SchemaDriftError as exc:
         raise ApiError("schema_mismatch", str(exc), 422) from exc
+    except WriteConstraintViolationError as exc:
+        raise ApiError("write_constraint_violation", str(exc), 422) from exc
     except ConnectionUnreachableError as exc:
         raise ApiError("connection_unreachable", str(exc), 503) from exc
     log_audit_event(

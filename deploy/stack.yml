@@ -1,0 +1,84 @@
+version: "3.9"
+
+# Throwaway test deployment of viewBuilder on the shared vegadigital OVH Swarm cluster.
+# Reachable at https://viewbuilder-test.vegadigital.dev via the shared Traefik ingress
+# (swarm-public network, existing letsencrypt resolver — same pattern as every other
+# stack on this cluster). Postgres/MSSQL stay on an isolated internal network, never
+# exposed to swarm-public or the internet. Safe to `docker stack rm viewbuilder-test`
+# once verification is done.
+
+networks:
+  viewbuilder-test-net:
+    driver: overlay
+  swarm-public:
+    external: true
+
+volumes:
+  viewbuilder-test-mssql-data:
+  viewbuilder-test-postgres-data:
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "ViewBuilder_Test123!"
+      MSSQL_PID: "Developer"
+    networks:
+      - viewbuilder-test-net
+    volumes:
+      - viewbuilder-test-mssql-data:/var/opt/mssql
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: viewbuilder
+      POSTGRES_PASSWORD: viewbuilder_dev
+      POSTGRES_DB: viewbuilder_metadata
+    networks:
+      - viewbuilder-test-net
+    volumes:
+      - viewbuilder-test-postgres-data:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    image: registry.vegadigital.dev/viewbuilder-backend:test4
+    environment:
+      METADATA_DATABASE_URL: "postgresql+psycopg://viewbuilder:viewbuilder_dev@postgres:5432/viewbuilder_metadata"
+      SEED_MSSQL_HOST: "mssql"
+      SEED_MSSQL_SA_PASSWORD: "ViewBuilder_Test123!"
+      VIEWBUILDER_CRED_SA: "ViewBuilder_Test123!"
+    networks:
+      - viewbuilder-test-net
+    ports:
+      - target: 8000
+        published: 18100
+        mode: host
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    image: registry.vegadigital.dev/viewbuilder-frontend:test
+    networks:
+      - viewbuilder-test-net
+      - swarm-public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=swarm-public
+        - traefik.http.services.viewbuilder-test.loadbalancer.server.port=80
+        - traefik.http.routers.viewbuilder-test.rule=Host(`viewbuilder-test.vegadigital.dev`)
+        - traefik.http.routers.viewbuilder-test.entrypoints=websecure
+        - traefik.http.routers.viewbuilder-test.tls.certresolver=letsencrypt
