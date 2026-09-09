@@ -61,29 +61,29 @@ US4, US5 = P2) to enable independent implementation and testing of each story.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Configure metadata-store SQLAlchemy engine/session in `backend/src/db/session.py`
+- [X] T008 Configure metadata-store SQLAlchemy engine/session in `backend/src/db/session.py`
       and initialize Alembic in `backend/db/alembic/` pointed at Postgres (data-model.md)
-- [ ] T009 [P] Implement `connection_config` SQLAlchemy model in
+- [X] T009 [P] Implement `connection_config` SQLAlchemy model in
       `backend/src/models/connection_config.py` (data-model.md §connection_config) and its
       Alembic migration
-- [ ] T010 [P] Implement `mapping_definition` + `mapping_version` SQLAlchemy models in
+- [X] T010 [P] Implement `mapping_definition` + `mapping_version` SQLAlchemy models in
       `backend/src/models/mapping.py` and their Alembic migration (data-model.md
       §mapping_definition, §mapping_version)
-- [ ] T011 [P] Implement `enum_translation_table` + `enum_translation_version` SQLAlchemy
+- [X] T011 [P] Implement `enum_translation_table` + `enum_translation_version` SQLAlchemy
       models in `backend/src/models/enum_translation.py` and their Alembic migration
       (data-model.md §enum_translation_table, §enum_translation_version)
-- [ ] T012 [P] Implement `run_log_entry` SQLAlchemy model in `backend/src/models/run_log.py`
+- [X] T012 [P] Implement `run_log_entry` SQLAlchemy model in `backend/src/models/run_log.py`
       and its Alembic migration (data-model.md §run_log_entry)
-- [ ] T013 Implement MS SQL Server connector in `backend/src/connectors/mssql.py` —
+- [X] T013 Implement MS SQL Server connector in `backend/src/connectors/mssql.py` —
       environment-tagged connection resolution (dev/test/prod), `credential_ref` lookup
       (opaque, never returns raw secret — Constitution Principle VI), and a schema-introspection
       helper (`list_tables`, `get_columns`) via SQLAlchemy `Inspector` (research.md §1)
-- [ ] T014 Implement FastAPI app skeleton with versioned router mount at `/api/v1` in
+- [X] T014 Implement FastAPI app skeleton with versioned router mount at `/api/v1` in
       `backend/src/api/main.py`, plus the shared error-response shape (`{"error": {"code",
       "message", "details"}}`) from contracts/api.md
-- [ ] T015 [P] Configure structured logging + error-handling middleware in
+- [X] T015 [P] Configure structured logging + error-handling middleware in
       `backend/src/api/middleware.py`
-- [ ] T016 [P] Configure frontend typed API client scaffold in `frontend/src/services/api.ts`
+- [X] T016 [P] Configure frontend typed API client scaffold in `frontend/src/services/api.ts`
       (base URL, error-shape parsing matching contracts/api.md) and TanStack Query provider
       setup in `frontend/src/main.tsx`
 
@@ -101,41 +101,41 @@ least one column link, save the mapping, reopen it, and confirm the same links a
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T017 [P] [US1] Contract test `GET /connections/{id}/schema` in
+- [X] T017 [P] [US1] Contract test `GET /connections/{id}/schema` in
       `backend/tests/contract/test_connections_schema.py` (against docker-compose mssql fixture)
-- [ ] T018 [P] [US1] Contract test `POST /mappings` and `POST /mappings/{id}/versions` in
+- [X] T018 [P] [US1] Contract test `POST /mappings` and `POST /mappings/{id}/versions` in
       `backend/tests/contract/test_mappings_crud.py`
-- [ ] T019 [P] [US1] Unit test: mapping-version immutability (editing creates a new version,
+- [X] T019 [P] [US1] Unit test: mapping-version immutability (editing creates a new version,
       never mutates an existing one — Constitution Principle II) in
       `backend/tests/unit/test_mapping_versioning.py`
-- [ ] T020 [P] [US1] Integration test: full save→reopen round trip against seeded mssql fixture
+- [X] T020 [P] [US1] Integration test: full save→reopen round trip against seeded mssql fixture
       in `backend/tests/integration/test_mapping_roundtrip.py`
-- [ ] T021 [P] [US1] Frontend unit test for canvas link creation/removal in
+- [X] T021 [P] [US1] Frontend unit test for canvas link creation/removal in
       `frontend/tests/unit/canvas.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T022 [US1] Implement connection CRUD service in
+- [X] T022 [US1] Implement connection CRUD service in
       `backend/src/services/connection_service.py` (create/list, never returns
       `credential_ref` — depends on T009, T013)
-- [ ] T023 [US1] Implement `GET/POST /connections` and `GET /connections/{id}/schema` routes in
+- [X] T023 [US1] Implement `GET/POST /connections` and `GET /connections/{id}/schema` routes in
       `backend/src/api/connections.py` (depends on T022)
-- [ ] T024 [US1] Implement mapping service in `backend/src/services/mapping_service.py` —
+- [X] T024 [US1] Implement mapping service in `backend/src/services/mapping_service.py` —
       create mapping definition + first version, save edit as new version, list versions
       (depends on T010)
-- [ ] T025 [US1] Implement `POST /mappings`, `GET /mappings`, `GET /mappings/{id}`,
+- [X] T025 [US1] Implement `POST /mappings`, `GET /mappings`, `GET /mappings/{id}`,
       `GET /mappings/{id}/versions`, `POST /mappings/{id}/versions` routes in
       `backend/src/api/mappings.py` (depends on T024)
-- [ ] T026 [US1] Add mapping validation (source/target connection role compatibility, no
+- [X] T026 [US1] Add mapping validation (source/target connection role compatibility, no
       dangling column references) in `backend/src/services/mapping_service.py`
-- [ ] T027 [P] [US1] Build table/column picker page in `frontend/src/pages/TablePicker.tsx`
+- [X] T027 [P] [US1] Build table/column picker page in `frontend/src/pages/TablePicker.tsx`
       (calls `GET /connections`, `GET /connections/{id}/schema`)
-- [ ] T028 [P] [US1] Build React Flow mapping canvas component in
+- [X] T028 [P] [US1] Build React Flow mapping canvas component in
       `frontend/src/components/canvas/MappingCanvas.tsx` — source/target columns as nodes,
       drag-drawn links as edges, remove/redraw support (FR-003)
-- [ ] T029 [US1] Build mapping editor page wiring TablePicker + MappingCanvas + save/version
+- [X] T029 [US1] Build mapping editor page wiring TablePicker + MappingCanvas + save/version
       history in `frontend/src/pages/MappingEditor.tsx` (depends on T027, T028)
-- [ ] T030 [US1] Add logging for mapping create/version-save operations in
+- [X] T030 [US1] Add logging for mapping create/version-save operations in
       `backend/src/services/mapping_service.py`
 
 **Checkpoint**: User Story 1 is fully functional and independently testable/demoable.
