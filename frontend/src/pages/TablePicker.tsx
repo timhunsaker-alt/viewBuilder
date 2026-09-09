@@ -94,6 +94,10 @@ export function TablePicker() {
           <Link to="/mappings/new" state={{ connectionId, table }}>
             Continue to mapping canvas →
           </Link>
+          {" · "}
+          <Link to="/retirement/new" state={{ connectionId, table }}>
+            Configure retirement mapping →
+          </Link>
         </section>
       )}
     </main>

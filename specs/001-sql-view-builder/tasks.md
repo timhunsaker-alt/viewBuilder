@@ -201,28 +201,28 @@ audit row exists.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T041 [P] [US3] Unit test: retirement write path never issues UPDATE/DELETE against the
+- [X] T041 [P] [US3] Unit test: retirement write path never issues UPDATE/DELETE against the
       source table (Constitution Principle IV) in
       `backend/tests/unit/test_retirement_writer.py`
-- [ ] T042 [P] [US3] Unit test: duplicate-retirement protection — re-running over an
+- [X] T042 [P] [US3] Unit test: duplicate-retirement protection — re-running over an
       already-retired row does not create a second audit record (FR-011) in
       `backend/tests/unit/test_retirement_writer.py`
-- [ ] T043 [P] [US3] Integration test against seeded mssql fixture: execute a retirement
+- [X] T043 [P] [US3] Integration test against seeded mssql fixture: execute a retirement
       mapping, assert source row unchanged and audit row has correct identity/reason/timestamp/
       mapping_version in `backend/tests/integration/test_retirement_execute.py`
 
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] Add `retirement_config` (status_column, retired_value_codes,
+- [X] T044 [US3] Add `retirement_config` (status_column, retired_value_codes,
       reason_column, row_identity_column, audit_binding) to mapping_version create/save in
       `backend/src/services/mapping_service.py` (depends on T024, data-model.md
       §retirement_audit_binding)
-- [ ] T045 [US3] Implement retirement writer in `backend/src/services/retirement_writer.py` —
+- [X] T045 [US3] Implement retirement writer in `backend/src/services/retirement_writer.py` —
       reads source rows matching `retired_value_codes`, translates reason via attached enum
       table (depends on T038), checks target audit table for existing identity match before
       writing (dedup, FR-011), inserts new audit rows only — never touches the source table
       (depends on T013, T038)
-- [ ] T046 [P] [US3] Build retirement-mapping configuration UI (status column, retired codes,
+- [X] T046 [P] [US3] Build retirement-mapping configuration UI (status column, retired codes,
       audit-table binding fields) in `frontend/src/pages/RetirementConfig.tsx`
 
 **Checkpoint**: User Stories 1, 2, AND 3 all work independently — this is the full "safe core"

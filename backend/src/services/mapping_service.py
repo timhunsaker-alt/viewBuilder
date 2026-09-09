@@ -57,6 +57,43 @@ class MappingService:
                         "(FR-005: a translation table must be attached before it can be used)"
                     )
 
+    def _validate_retirement_config(self, retirement_config: dict | None) -> None:
+        if retirement_config is None:
+            raise MappingValidationError(
+                "a 'retirement' mapping requires retirement_config (FR-009)"
+            )
+        required = (
+            "status_column",
+            "retired_value_codes",
+            "reason_column",
+            "audit_binding",
+        )
+        missing = [key for key in required if key not in retirement_config]
+        if missing:
+            raise MappingValidationError(f"retirement_config is missing required keys: {missing}")
+
+        audit_binding = retirement_config["audit_binding"]
+        required_binding_keys = (
+            "audit_table",
+            "row_identity_target_column",
+            "reason_target_column",
+            "timestamp_target_column",
+        )
+        missing_binding = [key for key in required_binding_keys if key not in audit_binding]
+        if missing_binding:
+            raise MappingValidationError(
+                f"retirement_config.audit_binding is missing required keys: {missing_binding}"
+            )
+
+        reason_translation_version_id = retirement_config.get("reason_translation_version_id")
+        if reason_translation_version_id is not None:
+            version = self.db.get(EnumTranslationVersion, reason_translation_version_id)
+            if version is None:
+                raise MappingValidationError(
+                    f"retirement_config references enum translation version "
+                    f"{reason_translation_version_id}, which does not exist"
+                )
+
     def create_mapping(
         self,
         *,
@@ -74,6 +111,8 @@ class MappingService:
             raise MappingValidationError(f"kind must be one of {MAPPING_KINDS}")
         self._validate_connection_roles(source_connection_id, target_connection_id)
         self._validate_column_links(column_links)
+        if kind == "retirement":
+            self._validate_retirement_config(retirement_config)
 
         definition = MappingDefinition(
             id=uuid.uuid4(),
@@ -117,6 +156,18 @@ class MappingService:
             raise MappingValidationError(f"no mapping definition {mapping_definition_id}")
 
         self._validate_column_links(column_links)
+        if definition.kind == "retirement":
+            previous_for_defaults = (
+                self.db.get(MappingVersion, definition.current_version_id)
+                if definition.current_version_id
+                else None
+            )
+            effective_retirement_config = (
+                retirement_config
+                if retirement_config is not None
+                else (previous_for_defaults.retirement_config if previous_for_defaults else None)
+            )
+            self._validate_retirement_config(effective_retirement_config)
 
         next_version_number = (
             self.db.query(func.max(MappingVersion.version_number))
