@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.api.errors import ApiError
+from src.api.middleware import log_audit_event
 from src.db.session import get_db
 from src.services.mapping_service import MappingService, MappingValidationError
 
@@ -27,12 +28,14 @@ class MappingCreate(BaseModel):
     column_links: list[ColumnLink]
     row_identity_column: str
     retirement_config: dict | None = None
+    operator: str = "system-operator"
 
 
 class MappingVersionCreate(BaseModel):
     column_links: list[ColumnLink]
     row_identity_column: str | None = None
     retirement_config: dict | None = None
+    operator: str = "system-operator"
 
 
 class MappingOut(BaseModel):
@@ -67,7 +70,7 @@ def list_mappings(db: Session = Depends(get_db)):
 @router.post("", response_model=MappingOut, status_code=201)
 def create_mapping(body: MappingCreate, db: Session = Depends(get_db)):
     try:
-        return MappingService(db).create_mapping(
+        mapping = MappingService(db).create_mapping(
             name=body.name,
             kind=body.kind,
             source_connection_id=body.source_connection_id,
@@ -80,6 +83,15 @@ def create_mapping(body: MappingCreate, db: Session = Depends(get_db)):
         )
     except MappingValidationError as exc:
         raise ApiError("mapping_invalid", str(exc), 422) from exc
+    log_audit_event(
+        action="mapping.create",
+        operator=body.operator,
+        resource="mapping_definition",
+        resource_id=mapping.id,
+        version=1,
+        details={"name": mapping.name, "kind": mapping.kind},
+    )
+    return mapping
 
 
 @router.get("/{mapping_id}", response_model=MappingOut)
@@ -100,7 +112,7 @@ def create_mapping_version(
     mapping_id: uuid.UUID, body: MappingVersionCreate, db: Session = Depends(get_db)
 ):
     try:
-        return MappingService(db).save_new_version(
+        version = MappingService(db).save_new_version(
             mapping_definition_id=mapping_id,
             column_links=[link.model_dump(exclude_none=True) for link in body.column_links],
             row_identity_column=body.row_identity_column,
@@ -108,3 +120,12 @@ def create_mapping_version(
         )
     except MappingValidationError as exc:
         raise ApiError("mapping_invalid", str(exc), 422) from exc
+    log_audit_event(
+        action="mapping.version.create",
+        operator=body.operator,
+        resource="mapping_version",
+        resource_id=version.id,
+        version=version.version_number,
+        details={"mapping_definition_id": str(mapping_id)},
+    )
+    return version

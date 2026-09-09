@@ -1,6 +1,7 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ProductionGuard } from "../components/shared/ProductionGuard";
 import { ApiError, api } from "../services/api";
 
 interface SampleRow {
@@ -21,6 +22,18 @@ interface RunLog {
   production_confirmed: boolean;
 }
 
+interface MappingDefinition {
+  id: string;
+  name: string;
+  source_connection_id: string;
+  target_connection_id: string;
+}
+
+interface Connection {
+  id: string;
+  environment: "dev" | "test" | "prod";
+}
+
 /**
  * Preview of a dry-run (US4) or completed execution (US5). For a dry-run, the "would
  * write" count is derived as source_rows_read - untranslatable_rows_flagged — the
@@ -32,7 +45,27 @@ export function DryRunResults() {
   const navigate = useNavigate();
   const [run, setRun] = useState<RunLog | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [confirmProduction, setConfirmProduction] = useState(false);
+
+  const mappingQuery = useQuery({
+    queryKey: ["mapping", mappingId],
+    queryFn: () => api.get<MappingDefinition>(`/mappings/${mappingId}`),
+    enabled: Boolean(mappingId),
+  });
+
+  const connectionsQuery = useQuery({
+    queryKey: ["connections"],
+    queryFn: () => api.get<Connection[]>("/connections"),
+  });
+
+  const isProduction = Boolean(
+    mappingQuery.data &&
+      connectionsQuery.data?.some(
+        (connection) =>
+          (connection.id === mappingQuery.data?.source_connection_id ||
+            connection.id === mappingQuery.data?.target_connection_id) &&
+          connection.environment === "prod",
+      ),
+  );
 
   const dryRunMutation = useMutation({
     mutationFn: () => api.post<RunLog>(`/mappings/${mappingId}/dry-run`, {}),
@@ -48,7 +81,7 @@ export function DryRunResults() {
   const executeMutation = useMutation({
     mutationFn: () =>
       api.post<RunLog>(`/mappings/${mappingId}/execute`, {
-        confirm_production: confirmProduction,
+        confirm_production: isProduction,
       }),
     onSuccess: (result) => {
       navigate("/runs", { state: { justRanId: result.id } });
@@ -116,21 +149,18 @@ export function DryRunResults() {
 
           <section>
             <h2>Execute</h2>
-            <label>
-              <input
-                type="checkbox"
-                checked={confirmProduction}
-                onChange={(event) => setConfirmProduction(event.target.checked)}
-              />
-              I confirm this run may touch a production connection
-            </label>
-            <button
-              type="button"
-              onClick={() => executeMutation.mutate()}
-              disabled={executeMutation.isPending}
-            >
-              Execute for real
-            </button>
+            <ProductionGuard
+              isProduction={isProduction}
+              actionLabel="Execute for real"
+              pendingLabel="Executing…"
+              isPending={executeMutation.isPending}
+              onConfirm={() => executeMutation.mutate()}
+              description={
+                mappingQuery.data
+                  ? `Mapping "${mappingQuery.data.name}" reads from or writes to a connection tagged production.`
+                  : undefined
+              }
+            />
           </section>
         </>
       )}

@@ -21,7 +21,8 @@ docker compose up -d
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt   # requirements-dev.txt adds
+                                                            # pytest/ruff/black, needed below
 alembic upgrade head          # create metadata store schema
 uvicorn src.api.main:app --reload --port 8000
 ```
@@ -39,20 +40,41 @@ bun run dev    # Vite dev server, proxies /api to localhost:8000
 
 ## 4. Try the golden path
 
-1. Open the frontend, add a `connection_config` pointing at the local seeded `mssql` container
-   (`environment: dev`).
-2. Pick the sample source table; the canvas shows its columns.
-3. Pick/create a target table on the same (or another) connection; drag links from source
-   columns to target columns.
-4. For the sample enum-coded column, attach the seeded enum-translation table.
-5. Save the mapping.
-6. Run **Dry Run** — confirm the preview shows translated values and row counts, and that
-   nothing was written (re-query the target table to confirm it's still empty/unchanged).
-7. Run **Execute** — confirm the target table now has the expected rows and `GET /runs` shows
-   a completed `run_log_entry` referencing the mapping version used.
-8. Configure a retirement mapping against the sample legacy retirement-reason table; execute
-   it; confirm the source row is unchanged and a new row appears in the configured retirement
-   audit table with a translated reason.
+1. Create a `connection_config` pointing at the local seeded `mssql` container
+   (`environment: dev`). There is no frontend form for this yet (v1 has no connection-create
+   UI) — use the backend's own Swagger UI at `http://localhost:8000/docs` (`POST /connections`)
+   or `curl`, e.g.:
+   ```bash
+   curl -X POST http://localhost:8000/api/v1/connections \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Seeded MSSQL", "role": "either", "environment": "dev", \
+          "host": "localhost", "port": 1433, "database": "master", \
+          "credential_ref": "local-dev-sa"}'
+   ```
+2. Open the frontend at `http://localhost:5173`, pick that connection, then pick the sample
+   source table; the page shows its columns.
+3. Click "Continue to mapping canvas →". On the mapping editor, pick a target connection and
+   target table (defaults to the same connection/table you started from, but can be pointed at
+   a different one, per FR-002); drag links from source columns to target columns on the
+   canvas.
+4. For the sample enum-coded column, attach the seeded enum-translation table (create it first
+   via `POST /enum-translations` if it doesn't already exist — there is likewise no
+   translation-table-creation UI wired into this flow yet, only the editor for existing
+   tables at `/enum-translations`).
+5. Name the mapping and save it.
+6. From the mapping editor, click "Run dry run" — confirm the preview shows translated values
+   and row counts, and that nothing was written (re-query the target table to confirm it's
+   still empty/unchanged).
+7. Click **Execute for real** — if either connection is tagged `prod` this is gated behind a
+   distinct warning banner and a typed confirmation phrase (`ProductionGuard`,
+   `frontend/src/components/shared/ProductionGuard.tsx`); for a `dev`/`test` connection it
+   executes immediately. Confirm the target table now has the expected rows and the run
+   history page (`/runs`) shows a completed `run_log_entry` referencing the mapping version
+   used.
+8. Configure a retirement mapping (`/retirement/new`, reached from the table picker) against
+   the sample legacy retirement-reason table; save it, then dry-run and execute it from
+   `/mappings/{id}/dry-run`; confirm the source row is unchanged and a new row appears in the
+   configured retirement audit table with a translated reason.
 
 ## Tests
 

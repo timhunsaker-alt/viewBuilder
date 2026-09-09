@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.api.errors import ApiError
+from src.api.middleware import log_audit_event
 from src.db.session import get_db
 from src.services.enum_translation_service import (
     EnumTranslationService,
@@ -22,10 +23,12 @@ class EnumEntry(BaseModel):
 class EnumTranslationCreate(BaseModel):
     name: str
     entries: list[EnumEntry]
+    operator: str = "system-operator"
 
 
 class EnumTranslationVersionCreate(BaseModel):
     entries: list[EnumEntry]
+    operator: str = "system-operator"
 
 
 class EnumTranslationOut(BaseModel):
@@ -53,11 +56,20 @@ def list_enum_translations(db: Session = Depends(get_db)):
 @router.post("", response_model=EnumTranslationOut, status_code=201)
 def create_enum_translation(body: EnumTranslationCreate, db: Session = Depends(get_db)):
     try:
-        return EnumTranslationService(db).create_table(
+        table = EnumTranslationService(db).create_table(
             name=body.name, entries=[e.model_dump() for e in body.entries]
         )
     except EnumTranslationValidationError as exc:
         raise ApiError("enum_translation_invalid", str(exc), 422) from exc
+    log_audit_event(
+        action="enum_translation.create",
+        operator=body.operator,
+        resource="enum_translation_table",
+        resource_id=table.id,
+        version=1,
+        details={"name": table.name},
+    )
+    return table
 
 
 @router.get("/{table_id}", response_model=EnumTranslationOut)
@@ -73,8 +85,17 @@ def create_enum_translation_version(
     table_id: uuid.UUID, body: EnumTranslationVersionCreate, db: Session = Depends(get_db)
 ):
     try:
-        return EnumTranslationService(db).save_new_version(
+        version = EnumTranslationService(db).save_new_version(
             table_id=table_id, entries=[e.model_dump() for e in body.entries]
         )
     except EnumTranslationValidationError as exc:
         raise ApiError("enum_translation_invalid", str(exc), 422) from exc
+    log_audit_event(
+        action="enum_translation.version.create",
+        operator=body.operator,
+        resource="enum_translation_version",
+        resource_id=version.id,
+        version=version.version_number,
+        details={"enum_translation_table_id": str(table_id)},
+    )
+    return version

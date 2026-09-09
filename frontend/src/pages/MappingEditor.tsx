@@ -33,6 +33,12 @@ interface EnumTranslationTable {
   current_version_id: string | null;
 }
 
+interface Connection {
+  id: string;
+  name: string;
+  environment: "dev" | "test" | "prod";
+}
+
 export function MappingEditor() {
   const { mappingId } = useParams();
   const location = useLocation();
@@ -41,6 +47,12 @@ export function MappingEditor() {
 
   const [name, setName] = useState("");
   const [links, setLinks] = useState<ColumnMappingLink[]>([]);
+  // Per FR-002, the target table/view is independently selectable — it need not be the
+  // source table/connection. Default to the source connection/table so the common case
+  // (mapping within the same database) needs no extra clicks, but let the operator pick a
+  // different connection/table for the target.
+  const [targetConnectionId, setTargetConnectionId] = useState(state.connectionId ?? "");
+  const [targetTable, setTargetTable] = useState(state.table ?? "");
 
   const mappingQuery = useQuery({
     queryKey: ["mapping", mappingId],
@@ -63,6 +75,26 @@ export function MappingEditor() {
     enabled: Boolean(state.connectionId) && Boolean(state.table),
   });
 
+  const connectionsQuery = useQuery({
+    queryKey: ["connections"],
+    queryFn: () => api.get<Connection[]>("/connections"),
+  });
+
+  const targetTablesQuery = useQuery({
+    queryKey: ["schema", targetConnectionId],
+    queryFn: () => api.get<{ tables: string[] }>(`/connections/${targetConnectionId}/schema`),
+    enabled: Boolean(targetConnectionId),
+  });
+
+  const targetSchemaQuery = useQuery({
+    queryKey: ["schema", targetConnectionId, targetTable],
+    queryFn: () =>
+      api.get<{ columns: SchemaColumn[] }>(
+        `/connections/${targetConnectionId}/schema?table=${encodeURIComponent(targetTable)}`,
+      ),
+    enabled: Boolean(targetConnectionId) && Boolean(targetTable),
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (mappingId) {
@@ -73,8 +105,8 @@ export function MappingEditor() {
         kind: "column_mapping",
         source_connection_id: state.connectionId,
         source_table: state.table,
-        target_connection_id: state.connectionId,
-        target_table: state.table,
+        target_connection_id: targetConnectionId,
+        target_table: targetTable,
         column_links: links,
         row_identity_column: sourceSchemaQuery.data?.columns?.[0]?.name ?? "",
       });
@@ -103,17 +135,55 @@ export function MappingEditor() {
   }
 
   const sourceColumns = sourceSchemaQuery.data?.columns?.map((c) => c.name) ?? [];
-  const targetColumns = sourceSchemaQuery.data?.columns?.map((c) => c.name) ?? [];
+  const targetColumns = targetSchemaQuery.data?.columns?.map((c) => c.name) ?? [];
 
   return (
     <main>
       <h1>{mappingId ? mappingQuery.data?.name : "New Mapping"}</h1>
 
       {!mappingId && (
-        <label>
-          Mapping name
-          <input value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
+        <>
+          <label>
+            Mapping name
+            <input value={name} onChange={(event) => setName(event.target.value)} />
+          </label>
+
+          <section>
+            <h2>Target table/view (FR-002)</h2>
+            <p>
+              Defaults to the source connection/table, but can point at a different connection and
+              table — the target does not have to be the same as the source.
+            </p>
+            <label>
+              Target connection
+              <select
+                value={targetConnectionId}
+                onChange={(event) => {
+                  setTargetConnectionId(event.target.value);
+                  setTargetTable("");
+                }}
+              >
+                <option value="">Select a connection…</option>
+                {connectionsQuery.data?.map((connection) => (
+                  <option key={connection.id} value={connection.id}>
+                    {connection.name} ({connection.environment})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Target table
+              <select value={targetTable} onChange={(event) => setTargetTable(event.target.value)}>
+                <option value="">Select a table…</option>
+                {targetTablesQuery.data?.tables?.map((tableName) => (
+                  <option key={tableName} value={tableName}>
+                    {tableName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </section>
+        </>
       )}
 
       <MappingCanvas
@@ -170,7 +240,11 @@ export function MappingEditor() {
       <button
         type="button"
         onClick={() => saveMutation.mutate()}
-        disabled={saveMutation.isPending || links.length === 0}
+        disabled={
+          saveMutation.isPending ||
+          links.length === 0 ||
+          (!mappingId && (!targetConnectionId || !targetTable))
+        }
       >
         Save mapping
       </button>

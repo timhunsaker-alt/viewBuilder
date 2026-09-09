@@ -314,18 +314,18 @@ timestamp.
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T064 [P] Playwright end-to-end test covering the full quickstart.md golden path (pick
+- [X] T064 [P] Playwright end-to-end test covering the full quickstart.md golden path (pick
       table → link columns → attach enum translation → save → dry-run → execute → retire) in
       `frontend/tests/e2e/golden-path.spec.ts`
-- [ ] T065 [P] Add environment-tag production-confirmation UI safeguard (distinct visual
+- [X] T065 [P] Add environment-tag production-confirmation UI safeguard (distinct visual
       warning + confirmation dialog) in `frontend/src/components/shared/ProductionGuard.tsx`
-- [ ] T066 [P] README with setup/run instructions at repository root, linking to
+- [X] T066 [P] README with setup/run instructions at repository root, linking to
       `specs/001-sql-view-builder/quickstart.md`
-- [ ] T067 Run full `quickstart.md` validation end-to-end and fix any drift between docs and
+- [X] T067 Run full `quickstart.md` validation end-to-end and fix any drift between docs and
       actual behavior
-- [ ] T068 [P] Add structured audit logging (operator, action, mapping/translation version) for
+- [X] T068 [P] Add structured audit logging (operator, action, mapping/translation version) for
       every mutating endpoint in `backend/src/api/middleware.py`
-- [ ] T069 Review all endpoints against contracts/api.md for drift; regenerate/update OpenAPI
+- [X] T069 Review all endpoints against contracts/api.md for drift; regenerate/update OpenAPI
       docs if any diverged
 
 ---

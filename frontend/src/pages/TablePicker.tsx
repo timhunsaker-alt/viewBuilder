@@ -51,6 +51,7 @@ export function TablePicker() {
       <section>
         <h2>1. Choose a connection</h2>
         <select
+          aria-label="Choose a connection"
           value={connectionId}
           onChange={(event) => {
             setConnectionId(event.target.value);
@@ -70,7 +71,11 @@ export function TablePicker() {
         <section>
           <h2>2. Choose a source table</h2>
           {tablesQuery.isLoading && <p>Loading tables…</p>}
-          <select value={table} onChange={(event) => setTable(event.target.value)}>
+          <select
+            aria-label="Choose a source table"
+            value={table}
+            onChange={(event) => setTable(event.target.value)}
+          >
             <option value="">Select a table…</option>
             {tablesQuery.data?.tables?.map((tableName) => (
               <option key={tableName} value={tableName}>

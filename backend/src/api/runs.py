@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.api.errors import ApiError
+from src.api.middleware import log_audit_event
 from src.connectors.mssql import ConnectionUnreachableError
 from src.db.session import get_db
 from src.models.mapping import MappingVersion
@@ -49,19 +50,28 @@ class RunLogOut(BaseModel):
 @router.post("/mappings/{mapping_id}/dry-run", response_model=RunLogOut, status_code=201)
 def dry_run(mapping_id: uuid.UUID, body: DryRunRequest, db: Session = Depends(get_db)):
     try:
-        return run_mapping(
+        run_log = run_mapping(
             db, mapping_definition_id=mapping_id, mode="dry_run", operator=body.operator
         )
     except MappingNotFoundError as exc:
         raise ApiError("not_found", f"no mapping with id {mapping_id}", 404) from exc
     except ConnectionUnreachableError as exc:
         raise ApiError("connection_unreachable", str(exc), 503) from exc
+    log_audit_event(
+        action="mapping.dry_run",
+        operator=body.operator,
+        resource="mapping_version",
+        resource_id=run_log.mapping_version_id,
+        version=run_log.mapping_version_id,
+        details={"mapping_definition_id": str(mapping_id), "run_log_entry_id": str(run_log.id)},
+    )
+    return run_log
 
 
 @router.post("/mappings/{mapping_id}/execute", response_model=RunLogOut, status_code=201)
 def execute(mapping_id: uuid.UUID, body: ExecuteRequest, db: Session = Depends(get_db)):
     try:
-        return run_mapping(
+        run_log = run_mapping(
             db,
             mapping_definition_id=mapping_id,
             mode="execute",
@@ -76,6 +86,19 @@ def execute(mapping_id: uuid.UUID, body: ExecuteRequest, db: Session = Depends(g
         raise ApiError("schema_mismatch", str(exc), 422) from exc
     except ConnectionUnreachableError as exc:
         raise ApiError("connection_unreachable", str(exc), 503) from exc
+    log_audit_event(
+        action="mapping.execute",
+        operator=body.operator,
+        resource="mapping_version",
+        resource_id=run_log.mapping_version_id,
+        version=run_log.mapping_version_id,
+        details={
+            "mapping_definition_id": str(mapping_id),
+            "run_log_entry_id": str(run_log.id),
+            "production_confirmed": run_log.production_confirmed,
+        },
+    )
+    return run_log
 
 
 @router.get("/runs", response_model=list[RunLogOut])
