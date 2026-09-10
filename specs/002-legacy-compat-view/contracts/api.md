@@ -24,10 +24,23 @@ exposed directly here so a user can check drift without triggering one of those.
 
 ### `POST /view-definitions`
 Create a new `view_definition` + its first `view_definition_version`. Body: `{name,
-legacy_shape_capture_id, target_connection_id, join_graph, column_mappings}`. Rejects with
-`mapping_invalid` if `column_mappings` doesn't cover every legacy-shape column (FR-004) or
-`join_graph` leaves a table unreachable (FR-002). Rejects with `name_collision` if `name`
-equals the legacy shape's own `table_name` (research.md §5).
+legacy_shape_capture_id, target_connection_id, join_graph, column_mappings}`, where each
+`column_mappings` entry is `{legacy_column, source_table?, source_column_or_expression?,
+column_status?, notes?}`. `column_status` is one of `Mapped` (default), `Retired`,
+`Transient`, `Historical` — a `Retired` column needs no `source_table`/
+`source_column_or_expression` at all (the view casts `NULL` for it instead); every other
+status still requires one. Rejects with `mapping_invalid` if `column_mappings` doesn't
+cover every legacy-shape column (FR-004), a non-`Retired` column has no source expression,
+an entry's `column_status` isn't one of the four values, or `join_graph` leaves a table
+unreachable (FR-002). Rejects with `name_collision` if `name` equals the legacy shape's own
+`table_name` (research.md §5).
+
+Every generated column — regardless of status — is wrapped in
+`CAST(... AS <that column's own legacy type>)` in the resulting view SQL, so the view's
+output always matches the old table's declared types, not just its column names/order.
+
+Saving (here or via `.../versions` below) also writes one `legacy_view_column_rule` row
+per legacy column — see `GET .../column-rules`.
 
 ### `GET /view-definitions` / `GET /view-definitions/{id}`
 List/fetch, `current_version_id` included.
@@ -39,6 +52,13 @@ Full version history, each with its `generated_sql` (FR-008).
 Save an edit as a new version (never mutates an existing version — Principle II). Same
 body shape as create, minus `name`/`legacy_shape_capture_id`/`target_connection_id`
 (immutable properties of the definition, same pattern as 001's mapping-version contract).
+
+### `GET /view-definitions/{id}/column-rules`
+The append-only `legacy_view_column_rule` history for this definition: every version's
+save (create or `.../versions`) writes a fresh row per legacy column — `{legacy_table_name,
+compatibility_view_name, column_name, column_status, expected_null_flag, notes}` — so this
+list can show how a column's status changed across versions, not just its current state.
+Rows are never updated once written.
 
 ### `POST /view-definitions/{id}/preview`
 Body: `{view_definition_version_id?}` (defaults to current version). Re-checks drift

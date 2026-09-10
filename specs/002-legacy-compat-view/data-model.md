@@ -49,13 +49,24 @@ versions.
 | view_definition_id | FK → view_definition | |
 | version_number | int | Monotonically increasing per definition |
 | join_graph | JSON | List of `{left_table, left_column, right_table, right_column, join_type}` (research.md §4) |
-| column_mappings | JSON | List of `{legacy_column, source_table, source_column_or_expression}` — one entry per column in the referenced legacy_shape_capture; validated complete (FR-004) |
+| column_mappings | JSON | List of `{legacy_column, source_table, source_column_or_expression, column_status, notes}` — one entry per column in the referenced legacy_shape_capture; validated complete (FR-004) |
 | generated_sql | text | The exact `CREATE OR ALTER VIEW ...` statement this version produces — captured verbatim at preview time and re-validated identical at deploy time |
 | created_at | timestamp | Immutable once created |
 
+`column_status` is one of `Mapped` (default — a real, live source), `Retired` (no live
+source; the generated SQL casts `NULL` for this column instead of reading one), `Transient`
+(has a real source today but is expected to go away/change soon), or `Historical` (reflects
+fixed/no-longer-updated data). Every column, regardless of status, is wrapped in
+`CAST(... AS <its own legacy type>)` in the generated SQL (ddl_generator.py) so the view's
+output always matches the old table's declared type — a `Retired` column casts
+`NULL AS <type>` instead of reading any (possibly stale) configured source. `notes` is a
+free-text field carried through to `legacy_view_column_rule` below.
+
 **Validation rules**: `column_mappings` MUST cover every column in
-`legacy_shape_capture.columns`, in the same order (FR-004/FR-006). `join_graph` MUST leave
-no table unreachable from the others (FR-002). A version, once referenced by any
+`legacy_shape_capture.columns`, in the same order (FR-004/FR-006). Every column whose
+`column_status` is not `Retired` MUST have a non-empty `source_column_or_expression` — a
+column with no live source must be marked `Retired` rather than left unsourced. `join_graph`
+MUST leave no table unreachable from the others (FR-002). A version, once referenced by any
 `view_deployment_log` entry, is immutable — no update endpoint may modify `join_graph`,
 `column_mappings`, or `generated_sql` on an existing version row.
 
@@ -75,6 +86,27 @@ One preview or deploy of a specific view definition version (FR-005/FR-008), ana
 | sample_rows | JSON | Populated for `preview` (and optionally `deploy`) — a capped sample of rows the view produces |
 | column_diff | JSON, nullable | For a `deploy` where a prior version was already live: `{added: [...], removed: [...], reordered: [...]}` relative to the previously-deployed version (US2 AC3) |
 | production_confirmed | boolean | Mirrors 001's `run_log_entry.production_confirmed` — required true for `mode=deploy` against a `prod`-tagged `target_connection` |
+
+## legacy_view_column_rule
+
+An append-only governance record, written fresh every time a view_definition_version is
+saved (create or new version) — one row per legacy column, describing how that column was
+treated in that exact version. Rows are never updated after being written (Constitution
+Principle II extended to this table): a later save writes a new set of rows rather than
+editing the prior set, so the full history of how a column's status changed over time is
+preserved, not just its current state.
+
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID (PK) | |
+| view_definition_version_id | FK → view_definition_version | Which version this rule row belongs to |
+| legacy_table_name | string | Copied from the referenced `legacy_shape_capture.table_name` at save time |
+| compatibility_view_name | string | Copied from `view_definition.name` at save time |
+| column_name | string | The legacy column this rule describes (`column_mappings[i].legacy_column`) |
+| column_status | enum(`Mapped`, `Retired`, `Transient`, `Historical`) | Copied from `column_mappings[i].column_status` |
+| expected_null_flag | boolean | `true` iff `column_status = Retired` at save time — the view is expected to output NULL (cast to the column's own type) for this column |
+| notes | text, nullable | Copied from `column_mappings[i].notes` |
+| created_at | timestamp | |
 
 ## reconciliation_run
 
@@ -142,7 +174,10 @@ onto the relevant `reconciliation_run.discrepancy_detail` entry for later refere
 connection_config ──< legacy_shape_capture
                             │
                     view_definition ──< view_definition_version ──< view_deployment_log
-                                              │                            │
+                                              │        │                   │
+                                              │        └──< legacy_view_column_rule
+                                              │             (one row per legacy column,
+                                              │              written fresh every save)
                                               └──────< reconciliation_run ─┘
                                               (compares this version's live view
                                                output against legacy_shape_capture's

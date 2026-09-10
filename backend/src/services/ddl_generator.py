@@ -7,18 +7,34 @@ Join graph shape (research.md §4): a list of
 `{left_table, left_column, right_table, right_column, join_type}` edges, where
 `join_type` is `"inner"` or `"left"`. Column mapping shape (data-model.md
 §view_definition_version): a list of
-`{legacy_column, source_table, source_column_or_expression}` entries, one per legacy
-column. When `source_table` is set, `source_column_or_expression` is treated as a bare
-column name on that table and is qualified with the table's alias. When `source_table`
-is `None`, `source_column_or_expression` is used verbatim as a raw SQL expression
-(e.g. a multi-table expression the caller has already qualified itself).
+`{legacy_column, source_table, source_column_or_expression, column_status?, notes?}`
+entries, one per legacy column. When `source_table` is set, `source_column_or_expression`
+is treated as a bare column name on that table and is qualified with the table's alias.
+When `source_table` is `None`, `source_column_or_expression` is used verbatim as a raw
+SQL expression (e.g. a multi-table expression the caller has already qualified itself).
+
+Every column, regardless of status, is wrapped in `CAST(... AS <legacy column's own
+type>)` so the view's output always matches the old table's declared type — even when
+the new-schema source column happens to already be the same type, casting is a no-op
+and therefore always safe to apply unconditionally. A column whose `column_status` is
+`"Retired"` ignores whatever source is configured and instead emits
+`CAST(NULL AS <type>)`, so the view keeps its promised shape/types for a column the new
+schema no longer sources, without fabricating data.
 """
 
 from __future__ import annotations
 
+import re
 from collections import deque
 
 VALID_JOIN_TYPES = ("inner", "left")
+VALID_COLUMN_STATUSES = ("Mapped", "Retired", "Transient", "Historical")
+
+# SQLAlchemy's str(type) rendering for a collated MS SQL string column looks like
+# `NVARCHAR(200) COLLATE "SQL_Latin1_General_CP1_CI_AS"` — a COLLATE clause is not
+# valid syntax inside a T-SQL CAST(... AS <type>) target (COLLATE only applies to a
+# column definition or an expression directly), so it must be stripped before use.
+_COLLATE_CLAUSE = re.compile(r"\s+COLLATE\s+\"[^\"]*\"", re.IGNORECASE)
 
 
 class DdlGenerationError(Exception):
@@ -27,6 +43,12 @@ class DdlGenerationError(Exception):
     Callers are expected to have already run the completeness/reachability validation
     in `view_definition_service` before calling here; this is a defensive backstop.
     """
+
+
+def cast_type(sql_type: str) -> str:
+    """A legacy column's introspected type string, cleaned down to a bare type
+    specification usable inside `CAST(expr AS <this>)`."""
+    return _COLLATE_CLAUSE.sub("", sql_type).strip()
 
 
 def _alias_for(table: str) -> str:
@@ -79,27 +101,47 @@ def _build_join_order(
     return order, edge_used
 
 
-def _select_list(legacy_columns: list[str], column_mappings: list[dict]) -> list[str]:
+def _select_list(legacy_columns: list[dict], column_mappings: list[dict]) -> list[str]:
     mapping_by_column = {m["legacy_column"]: m for m in column_mappings}
     select_items = []
-    for legacy_column in legacy_columns:
+    for legacy_col in legacy_columns:
+        legacy_column = legacy_col["name"]
         mapping = mapping_by_column.get(legacy_column)
         if mapping is None:
             raise DdlGenerationError(f"legacy column '{legacy_column}' has no mapping entry")
-        source_table = mapping.get("source_table")
-        expr = mapping["source_column_or_expression"]
-        if source_table:
-            expr = f"{_alias_for(source_table)}.{expr}"
-        select_items.append(f"{expr} AS [{legacy_column}]")
+
+        status = mapping.get("column_status") or "Mapped"
+        if status not in VALID_COLUMN_STATUSES:
+            raise DdlGenerationError(
+                f"legacy column '{legacy_column}' has unknown column_status '{status}'; "
+                f"must be one of {VALID_COLUMN_STATUSES}"
+            )
+
+        if status == "Retired":
+            # Ignore whatever source is configured — a retired column is never read
+            # from the new schema, but the view still owes its declared shape/type.
+            expr = "NULL"
+        else:
+            source_table = mapping.get("source_table")
+            expr = mapping["source_column_or_expression"]
+            if source_table:
+                expr = f"{_alias_for(source_table)}.{expr}"
+
+        target_type = cast_type(legacy_col["type"])
+        select_items.append(f"CAST({expr} AS {target_type}) AS [{legacy_column}]")
     return select_items
 
 
 def build_select_sql(
-    *, legacy_columns: list[str], join_graph: list[dict], column_mappings: list[dict]
+    *, legacy_columns: list[dict], join_graph: list[dict], column_mappings: list[dict]
 ) -> str:
     """The plain `SELECT ...` body (no `CREATE VIEW` wrapper) — used both to build the
     deployed view's definition and, wrapped in a capped `SELECT TOP` by the caller, for
     a zero-DDL preview query (Constitution Principle I).
+
+    `legacy_columns` is the legacy shape's captured column list — a list of
+    `{name, type, nullable}` dicts (data-model.md §legacy_shape_capture) — `type` drives
+    the CAST target for that column (see module docstring).
     """
     # An ordered (not just a set of) table list: insertion order follows the legacy
     # column order first, then the join graph — so the BFS root below is always the
@@ -108,12 +150,18 @@ def build_select_sql(
     # Python's arbitrary set iteration order.
     tables: dict[str, None] = {}
     mapping_by_column = {m["legacy_column"]: m for m in column_mappings}
-    for legacy_column in legacy_columns:
-        mapping = mapping_by_column.get(legacy_column)
-        if mapping and mapping.get("source_table"):
+
+    def _is_live_source(mapping: dict | None) -> bool:
+        if mapping is None or not mapping.get("source_table"):
+            return False
+        return (mapping.get("column_status") or "Mapped") != "Retired"
+
+    for legacy_col in legacy_columns:
+        mapping = mapping_by_column.get(legacy_col["name"])
+        if _is_live_source(mapping):
             tables.setdefault(mapping["source_table"], None)
     for mapping in column_mappings:
-        if mapping.get("source_table"):
+        if _is_live_source(mapping):
             tables.setdefault(mapping["source_table"], None)
     for edge in join_graph:
         tables.setdefault(edge["left_table"], None)
@@ -158,7 +206,7 @@ def build_select_sql(
 def build_create_view_sql(
     *,
     view_name: str,
-    legacy_columns: list[str],
+    legacy_columns: list[dict],
     join_graph: list[dict],
     column_mappings: list[dict],
 ) -> str:

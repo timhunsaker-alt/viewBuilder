@@ -112,9 +112,8 @@ def preview_view(
         view_definition_id=view_definition_id,
         view_definition_version_id=view_definition_version_id,
     )
-    legacy_columns = [c["name"] for c in resolved.legacy_shape.columns]
     select_sql = build_select_sql(
-        legacy_columns=legacy_columns,
+        legacy_columns=resolved.legacy_shape.columns,
         join_graph=resolved.version.join_graph,
         column_mappings=resolved.version.column_mappings,
     )

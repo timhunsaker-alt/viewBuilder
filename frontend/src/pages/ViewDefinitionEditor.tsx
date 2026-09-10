@@ -4,7 +4,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { JoinGraphCanvas, type JoinGraphTable } from "../components/canvas/JoinGraphCanvas";
 import {
   ApiError,
+  COLUMN_STATUSES,
   type ColumnMappingEntry,
+  type ColumnStatus,
   type JoinGraphEdge,
   type LegacyShapeCapture,
   type ViewDeploymentLogEntry,
@@ -162,6 +164,34 @@ export function ViewDefinitionEditor() {
         legacy_column: legacyColumn,
         source_table: sourceTable || null,
         source_column_or_expression: sourceColumn,
+        column_status: current[legacyColumn]?.column_status ?? "Mapped",
+        notes: current[legacyColumn]?.notes ?? null,
+      },
+    }));
+  }
+
+  function setColumnStatus(legacyColumn: string, status: ColumnStatus) {
+    setColumnMappings((current) => ({
+      ...current,
+      [legacyColumn]: {
+        legacy_column: legacyColumn,
+        source_table: current[legacyColumn]?.source_table ?? null,
+        source_column_or_expression: current[legacyColumn]?.source_column_or_expression ?? "",
+        column_status: status,
+        notes: current[legacyColumn]?.notes ?? null,
+      },
+    }));
+  }
+
+  function setNotes(legacyColumn: string, notes: string) {
+    setColumnMappings((current) => ({
+      ...current,
+      [legacyColumn]: {
+        legacy_column: legacyColumn,
+        source_table: current[legacyColumn]?.source_table ?? null,
+        source_column_or_expression: current[legacyColumn]?.source_column_or_expression ?? "",
+        column_status: current[legacyColumn]?.column_status ?? "Mapped",
+        notes: notes || null,
       },
     }));
   }
@@ -174,6 +204,8 @@ export function ViewDefinitionEditor() {
             legacy_column: col,
             source_table: null,
             source_column_or_expression: "",
+            column_status: "Mapped" as ColumnStatus,
+            notes: null,
           },
       );
       if (viewDefinitionId) {
@@ -203,11 +235,16 @@ export function ViewDefinitionEditor() {
     },
   });
 
+  // A Retired column is exempt from needing a real source — the view casts NULL for
+  // it instead (ddl_generator.py) — every other status still requires one, matching
+  // the server-side rule in view_definition_service.validate_column_mappings.
   const allColumnsMapped =
     legacyColumns.length > 0 &&
-    legacyColumns.every(
-      (col) => (columnMappings[col]?.source_column_or_expression ?? "").length > 0,
-    );
+    legacyColumns.every((col) => {
+      const mapping = columnMappings[col];
+      if ((mapping?.column_status ?? "Mapped") === "Retired") return true;
+      return (mapping?.source_column_or_expression ?? "").length > 0;
+    });
 
   return (
     <main>
@@ -306,42 +343,75 @@ export function ViewDefinitionEditor() {
       {legacyColumns.length > 0 && (
         <section>
           <h2>6. Column mapping (FR-003/FR-004)</h2>
+          <p>
+            Every column always gets a <code>CAST(... AS &lt;its own legacy type&gt;)</code> in the
+            generated view, so its output always matches the old table's declared type. Mark a
+            column <strong>Retired</strong> when there is no live source for it in the new schema —
+            the view then outputs <code>CAST(NULL AS &lt;type&gt;)</code> for it instead of reading
+            a source at all, and it doesn't need a source table/column configured.{" "}
+            <strong>Transient</strong>/<strong>Historical</strong> still read a real source like{" "}
+            <strong>Mapped</strong>; the status is a governance label recorded in{" "}
+            <code>legacy_view_column_rule</code>, not a change in how the column is read.
+          </p>
           <table>
             <thead>
               <tr>
                 <th>Legacy column</th>
+                <th>Status</th>
                 <th>Source table</th>
                 <th>Source column / expression</th>
+                <th>Notes</th>
               </tr>
             </thead>
             <tbody>
               {legacyColumns.map((legacyColumn) => {
                 const mapping = columnMappings[legacyColumn];
+                const status = mapping?.column_status ?? "Mapped";
+                const isRetired = status === "Retired";
                 return (
                   <tr key={legacyColumn}>
                     <td>{legacyColumn}</td>
                     <td>
                       <select
-                        aria-label={`Source table for ${legacyColumn}`}
-                        value={mapping?.source_table ?? ""}
+                        aria-label={`Column status for ${legacyColumn}`}
+                        value={status}
                         onChange={(event) =>
-                          setMapping(
-                            legacyColumn,
-                            event.target.value,
-                            mapping?.source_column_or_expression ?? "",
-                          )
+                          setColumnStatus(legacyColumn, event.target.value as ColumnStatus)
                         }
                       >
-                        <option value="">(raw expression)</option>
-                        {selectedTables.map((table) => (
-                          <option key={table} value={table}>
-                            {table}
+                        {COLUMN_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
                           </option>
                         ))}
                       </select>
                     </td>
                     <td>
-                      {mapping?.source_table ? (
+                      {isRetired ? (
+                        <em>— retired, no source needed —</em>
+                      ) : (
+                        <select
+                          aria-label={`Source table for ${legacyColumn}`}
+                          value={mapping?.source_table ?? ""}
+                          onChange={(event) =>
+                            setMapping(
+                              legacyColumn,
+                              event.target.value,
+                              mapping?.source_column_or_expression ?? "",
+                            )
+                          }
+                        >
+                          <option value="">(raw expression)</option>
+                          {selectedTables.map((table) => (
+                            <option key={table} value={table}>
+                              {table}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+                    <td>
+                      {isRetired ? null : mapping?.source_table ? (
                         <select
                           aria-label={`Source column for ${legacyColumn}`}
                           value={mapping?.source_column_or_expression ?? ""}
@@ -365,12 +435,21 @@ export function ViewDefinitionEditor() {
                         />
                       )}
                     </td>
+                    <td>
+                      <input
+                        aria-label={`Notes for ${legacyColumn}`}
+                        value={mapping?.notes ?? ""}
+                        onChange={(event) => setNotes(legacyColumn, event.target.value)}
+                      />
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          {!allColumnsMapped && <p>Every legacy column must be mapped before saving (FR-004).</p>}
+          {!allColumnsMapped && (
+            <p>Every non-Retired legacy column must have a source before saving (FR-004).</p>
+          )}
         </section>
       )}
 

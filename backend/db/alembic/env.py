@@ -17,6 +17,7 @@ from src.models import (  # noqa: E402,F401
     deployment_log,
     enum_translation,
     legacy_shape,
+    legacy_view_column_rule,
     mapping,
     reconciliation,
     run_log,

@@ -86,10 +86,27 @@ export interface JoinGraphEdge {
   join_type: "inner" | "left";
 }
 
+export type ColumnStatus = "Mapped" | "Retired" | "Transient" | "Historical";
+
+export const COLUMN_STATUSES: ColumnStatus[] = ["Mapped", "Retired", "Transient", "Historical"];
+
 export interface ColumnMappingEntry {
   legacy_column: string;
   source_table: string | null;
   source_column_or_expression: string;
+  column_status: ColumnStatus;
+  notes: string | null;
+}
+
+export interface LegacyViewColumnRule {
+  id: string;
+  view_definition_version_id: string;
+  legacy_table_name: string;
+  compatibility_view_name: string;
+  column_name: string;
+  column_status: ColumnStatus;
+  expected_null_flag: boolean;
+  notes: string | null;
 }
 
 export interface ViewDefinition {

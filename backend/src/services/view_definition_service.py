@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.models.legacy_shape import LegacyShapeCapture
+from src.models.legacy_view_column_rule import VALID_COLUMN_STATUSES, LegacyViewColumnRule
 from src.models.view_definition import ViewDefinition, ViewDefinitionVersion
 from src.services.ddl_generator import DdlGenerationError, build_create_view_sql
 
@@ -83,7 +84,11 @@ def validate_join_graph(tables: set[str], join_graph: list[dict]) -> None:
 
 def validate_column_mappings(legacy_columns: list[str], column_mappings: list[dict]) -> None:
     """FR-004: every legacy-shape column MUST have a mapping entry; block (rather than
-    silently omit/reorder) otherwise, with a clear list of what's missing.
+    silently omit/reorder) otherwise, with a clear list of what's missing. A column
+    marked `column_status="Retired"` is exempt from needing a real source expression
+    (the view casts NULL for it instead, per ddl_generator) — every other status
+    (including the default, "Mapped") still requires one, since there's no other way
+    the view could produce that column's value.
     """
     mapped = {m.get("legacy_column") for m in column_mappings}
     missing = [c for c in legacy_columns if c not in mapped]
@@ -98,6 +103,28 @@ def validate_column_mappings(legacy_columns: list[str], column_mappings: list[di
         raise ViewDefinitionValidationError(
             "mapping_invalid",
             f"column_mappings references columns not present in the legacy shape: {unknown}",
+        )
+
+    for m in column_mappings:
+        status = m.get("column_status") or "Mapped"
+        if status not in VALID_COLUMN_STATUSES:
+            raise ViewDefinitionValidationError(
+                "mapping_invalid",
+                f"column '{m.get('legacy_column')}' has unknown column_status '{status}'; "
+                f"must be one of {VALID_COLUMN_STATUSES}",
+            )
+
+    unsourced = [
+        m.get("legacy_column")
+        for m in column_mappings
+        if (m.get("column_status") or "Mapped") != "Retired"
+        and not (m.get("source_column_or_expression") or "").strip()
+    ]
+    if unsourced:
+        raise ViewDefinitionValidationError(
+            "mapping_invalid",
+            f"column_mappings missing a source expression for non-retired columns: "
+            f"{unsourced} (FR-004) — mark a column Retired if it has no live source",
         )
 
 
@@ -161,20 +188,49 @@ class ViewDefinitionService:
                 "table and a view share one name in the same schema.",
             )
 
-        legacy_columns = [c["name"] for c in legacy_shape.columns]
-        validate_column_mappings(legacy_columns, column_mappings)
+        legacy_column_names = [c["name"] for c in legacy_shape.columns]
+        validate_column_mappings(legacy_column_names, column_mappings)
         tables = _referenced_tables(join_graph, column_mappings)
         validate_join_graph(tables, join_graph)
 
         try:
             return build_create_view_sql(
                 view_name=name,
-                legacy_columns=legacy_columns,
+                legacy_columns=legacy_shape.columns,
                 join_graph=join_graph,
                 column_mappings=column_mappings,
             )
         except DdlGenerationError as exc:
             raise ViewDefinitionValidationError("mapping_invalid", str(exc)) from exc
+
+    def _write_column_rules(
+        self,
+        *,
+        legacy_shape: LegacyShapeCapture,
+        view_name: str,
+        version: ViewDefinitionVersion,
+        column_mappings: list[dict],
+    ) -> None:
+        """Writes one `legacy_view_column_rule` row per legacy column for this
+        version — an append-only governance record (never updated) of what status
+        each column was under in this exact version, so a later audit can see how
+        that changed over time rather than only the current state.
+        """
+        for mapping in column_mappings:
+            status = mapping.get("column_status") or "Mapped"
+            self.db.add(
+                LegacyViewColumnRule(
+                    id=uuid.uuid4(),
+                    view_definition_version_id=version.id,
+                    legacy_table_name=legacy_shape.table_name,
+                    compatibility_view_name=view_name,
+                    column_name=mapping["legacy_column"],
+                    column_status=status,
+                    expected_null_flag=(status == "Retired"),
+                    notes=mapping.get("notes"),
+                )
+            )
+        self.db.commit()
 
     def create_view_definition(
         self,
@@ -221,6 +277,12 @@ class ViewDefinitionService:
         definition.current_version_id = version.id
         self.db.commit()
         self.db.refresh(definition)
+        self._write_column_rules(
+            legacy_shape=legacy_shape,
+            view_name=name,
+            version=version,
+            column_mappings=column_mappings,
+        )
         logger.info("view_definition_created id=%s name=%s", definition.id, name)
         return definition
 
@@ -266,6 +328,12 @@ class ViewDefinitionService:
         definition.current_version_id = version.id
         self.db.commit()
         self.db.refresh(version)
+        self._write_column_rules(
+            legacy_shape=legacy_shape,
+            view_name=definition.name,
+            version=version,
+            column_mappings=column_mappings,
+        )
         logger.info(
             "view_definition_version_saved view_definition_id=%s version=%s",
             view_definition_id,
@@ -278,6 +346,18 @@ class ViewDefinitionService:
             self.db.query(ViewDefinitionVersion)
             .filter(ViewDefinitionVersion.view_definition_id == view_definition_id)
             .order_by(ViewDefinitionVersion.version_number)
+            .all()
+        )
+
+    def list_column_rules(self, view_definition_id: uuid.UUID) -> list[LegacyViewColumnRule]:
+        return list(
+            self.db.query(LegacyViewColumnRule)
+            .join(
+                ViewDefinitionVersion,
+                LegacyViewColumnRule.view_definition_version_id == ViewDefinitionVersion.id,
+            )
+            .filter(ViewDefinitionVersion.view_definition_id == view_definition_id)
+            .order_by(LegacyViewColumnRule.created_at, LegacyViewColumnRule.column_name)
             .all()
         )
 

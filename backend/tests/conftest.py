@@ -57,6 +57,7 @@ def db_session():
         session.execute(text("DELETE FROM enum_translation_table"))
         session.execute(text("DELETE FROM view_deployment_log"))
         session.execute(text("DELETE FROM reconciliation_run"))
+        session.execute(text("DELETE FROM legacy_view_column_rule"))
         session.execute(text("DELETE FROM view_definition_version"))
         session.execute(text("DELETE FROM view_definition"))
         session.execute(text("DELETE FROM xml_field_mapping_version"))

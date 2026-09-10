@@ -176,5 +176,11 @@ def test_new_version_does_not_mutate_prior_version(client, sample_connection, sa
     assert len(versions) == 2
     v1 = next(v for v in versions if v["version_number"] == 1)
     v2 = next(v for v in versions if v["version_number"] == 2)
-    assert "loan_applicant.first_name AS [applicant_first_name]" in v1["generated_sql"]
-    assert "loan_applicant.last_name AS [applicant_first_name]" in v2["generated_sql"]
+    assert (
+        "CAST(loan_applicant.first_name AS VARCHAR(100)) AS [applicant_first_name]"
+        in v1["generated_sql"]
+    )
+    assert (
+        "CAST(loan_applicant.last_name AS VARCHAR(100)) AS [applicant_first_name]"
+        in v2["generated_sql"]
+    )

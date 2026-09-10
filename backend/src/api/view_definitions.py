@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -37,10 +38,19 @@ class JoinGraphEdge(BaseModel):
     join_type: str = "inner"
 
 
+ColumnStatus = Literal["Mapped", "Retired", "Transient", "Historical"]
+
+
 class ColumnMappingEntry(BaseModel):
     legacy_column: str
     source_table: str | None = None
-    source_column_or_expression: str
+    # Not required to be non-empty at the Pydantic level for a Retired column (the
+    # view casts NULL for those instead) — the real "must have a source unless
+    # Retired" rule is enforced in view_definition_service.validate_column_mappings,
+    # since Pydantic alone can't see column_status when validating this field.
+    source_column_or_expression: str = ""
+    column_status: ColumnStatus = "Mapped"
+    notes: str | None = None
 
 
 class ViewDefinitionCreate(BaseModel):
@@ -81,6 +91,19 @@ class ViewDefinitionVersionOut(BaseModel):
     join_graph: list[dict]
     column_mappings: list[dict]
     generated_sql: str
+
+    model_config = {"from_attributes": True}
+
+
+class LegacyViewColumnRuleOut(BaseModel):
+    id: uuid.UUID
+    view_definition_version_id: uuid.UUID
+    legacy_table_name: str
+    compatibility_view_name: str
+    column_name: str
+    column_status: str
+    expected_null_flag: bool
+    notes: str | None
 
     model_config = {"from_attributes": True}
 
@@ -163,6 +186,14 @@ def get_view_definition(view_definition_id: uuid.UUID, db: Session = Depends(get
 @router.get("/{view_definition_id}/versions", response_model=list[ViewDefinitionVersionOut])
 def list_view_definition_versions(view_definition_id: uuid.UUID, db: Session = Depends(get_db)):
     return ViewDefinitionService(db).list_versions(view_definition_id)
+
+
+@router.get("/{view_definition_id}/column-rules", response_model=list[LegacyViewColumnRuleOut])
+def list_view_definition_column_rules(view_definition_id: uuid.UUID, db: Session = Depends(get_db)):
+    """The append-only `legacy_view_column_rule` history for this definition — every
+    version's save writes a fresh row per legacy column, so this can show how a
+    column's status changed over time, not just its current state."""
+    return ViewDefinitionService(db).list_column_rules(view_definition_id)
 
 
 @router.post(
