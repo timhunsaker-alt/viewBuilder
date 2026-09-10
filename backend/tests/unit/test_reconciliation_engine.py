@@ -98,6 +98,40 @@ def test_row_inflation_is_flagged_distinctly_from_an_ordinary_mismatch():
     assert inflation_entries[0]["identity"] == 1
 
 
+def test_retired_column_null_in_view_ignores_whatever_the_old_value_is():
+    old_rows = [{"application_id": 1, "status": "Funded", "loan_amount_cents": 100}]
+    # "status" is retired: the view casts it to NULL regardless of what the old
+    # table still holds there — that's expected, not a discrepancy.
+    view_rows = [{"application_id": 1, "status": None, "loan_amount_cents": 100}]
+    result = compare_row_sets(
+        old_rows=old_rows,
+        view_rows=view_rows,
+        identity_column="application_id",
+        compare_columns=COMPARE_COLUMNS,
+        retired_columns={"status"},
+    )
+    assert result.rows_matched == 1
+    assert result.rows_with_column_mismatch == 0
+    assert result.discrepancy_detail == []
+
+
+def test_retired_column_that_is_unexpectedly_non_null_is_still_flagged():
+    old_rows = [{"application_id": 1, "status": "Funded", "loan_amount_cents": 100}]
+    # A retired column should be NULL in the view; if a stale deploy still sources
+    # it, that's a real discrepancy worth flagging, not silently ignored.
+    view_rows = [{"application_id": 1, "status": "Closed", "loan_amount_cents": 100}]
+    result = compare_row_sets(
+        old_rows=old_rows,
+        view_rows=view_rows,
+        identity_column="application_id",
+        compare_columns=COMPARE_COLUMNS,
+        retired_columns={"status"},
+    )
+    assert result.rows_matched == 0
+    assert result.rows_with_column_mismatch == 1
+    assert result.discrepancy_detail[0]["column"] == "status"
+
+
 def test_row_inflation_alongside_an_unrelated_clean_row():
     old_rows = [
         {"application_id": 1, "status": "Funded", "loan_amount_cents": 100},

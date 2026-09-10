@@ -87,6 +87,14 @@ have at least one successful `deploy` log entry (returns `not_deployed` otherwis
 can't reconcile a view that was only ever previewed). Runs the keyed comparison
 (research.md §2) and returns a `reconciliation_run`.
 
+For any legacy column whose `legacy_view_column_rule.column_status` is `Retired` on
+this version, the comparison ignores that column entirely when the view's value for
+it is `NULL` (the expected output for a retired column, per ddl_generator.py's
+`CAST(NULL AS <old type>)`) — whatever the old table still holds there is not
+compared and never appears in `discrepancy_detail`. If a retired column somehow
+comes back non-`NULL` (e.g. a stale deploy that wasn't actually retired), it is
+compared normally and flagged like any other mismatch.
+
 ### `GET /view-definitions/{id}/reconciliations` / `GET /reconciliations/{id}`
 List/fetch reconciliation runs, the latter including `discrepancy_detail`.
 

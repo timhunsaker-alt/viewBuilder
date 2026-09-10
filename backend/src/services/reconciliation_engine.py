@@ -46,6 +46,7 @@ def compare_row_sets(
     view_rows: Iterable[dict],
     identity_column: str,
     compare_columns: list[str],
+    retired_columns: set[str] | None = None,
 ) -> ReconciliationResult:
     """FR-009: for the identity column's current population, report how many rows
     match exactly, how many exist only on one side, and how many exist on both but
@@ -57,7 +58,16 @@ def compare_row_sets(
     deliberately excluded from `rows_matched`/`rows_with_column_mismatch` so those
     counts stay meaningful (a structural join problem is not the same claim as "this
     row's data differs").
+
+    `retired_columns` names legacy columns whose current `legacy_view_column_rule`
+    status is "Retired" — the deployed view deliberately casts those to NULL
+    (ddl_generator.py) rather than sourcing them, so a retired column's view-side
+    NULL is compared against nothing: whatever the old table still holds there is
+    ignored, not flagged as a mismatch. This only applies while the view actually
+    outputs NULL for that column; if a retired column somehow comes back non-NULL
+    (e.g. a stale deploy), that's a real discrepancy worth flagging normally.
     """
+    retired_columns = retired_columns or set()
     old_by_id = _group_by_identity(old_rows, identity_column)
     view_by_id = _group_by_identity(view_rows, identity_column)
 
@@ -108,8 +118,10 @@ def compare_row_sets(
         view_row = view_rows_for_id[0]
         row_mismatched = False
         for column in compare_columns:
-            old_value = old_row.get(column)
             view_value = view_row.get(column)
+            if column in retired_columns and view_value is None:
+                continue
+            old_value = old_row.get(column)
             if old_value != view_value:
                 row_mismatched = True
                 _append_detail(

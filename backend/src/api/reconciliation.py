@@ -24,6 +24,7 @@ from src.db.session import get_db
 from src.models.connection_config import ConnectionConfig
 from src.models.deployment_log import ViewDeploymentLogEntry
 from src.models.legacy_shape import LegacyShapeCapture
+from src.models.legacy_view_column_rule import LegacyViewColumnRule
 from src.models.reconciliation import ReconciliationRun
 from src.models.view_definition import ViewDefinition, ViewDefinitionVersion
 from src.services.reconciliation_engine import compare_row_sets
@@ -149,11 +150,22 @@ def reconcile_view(
     except ConnectionUnreachableError as exc:
         raise ApiError("connection_unreachable", str(exc), 503) from exc
 
+    retired_columns = {
+        rule.column_name
+        for rule in db.query(LegacyViewColumnRule)
+        .filter(
+            LegacyViewColumnRule.view_definition_version_id == version.id,
+            LegacyViewColumnRule.column_status == "Retired",
+        )
+        .all()
+    }
+
     comparison = compare_row_sets(
         old_rows=old_rows,
         view_rows=view_rows,
         identity_column=body.identity_column,
         compare_columns=legacy_columns,
+        retired_columns=retired_columns,
     )
 
     run = ReconciliationRun(
