@@ -49,7 +49,7 @@ services:
         condition: on-failure
 
   backend:
-    image: registry.vegadigital.dev/viewbuilder-backend:test6
+    image: registry.vegadigital.dev/viewbuilder-backend:test7
     environment:
       METADATA_DATABASE_URL: "postgresql+psycopg://viewbuilder:viewbuilder_dev@postgres:5432/viewbuilder_metadata"
       SEED_MSSQL_HOST: "mssql"
@@ -67,7 +67,7 @@ services:
         condition: on-failure
 
   frontend:
-    image: registry.vegadigital.dev/viewbuilder-frontend:test4
+    image: registry.vegadigital.dev/viewbuilder-frontend:test5
     networks:
       - viewbuilder-test-net
       - swarm-public
