@@ -76,6 +76,26 @@ def test_create_xml_field_mapping_and_add_a_version(client, sample_connection, s
     assert versioned.status_code == 201
     assert versioned.json()["version_number"] == 2
 
+    # T053: GET /xml-field-mappings/{id} must return the *current* version's
+    # field_paths directly — this is the fix for the gap noted by the US4 implementer
+    # (frontend/src/pages/XmlLookupPanel.tsx previously had no way to read what was
+    # already configured before adding one more entry).
+    fetched = client.get(f"/api/v1/xml-field-mappings/{mapping_id}")
+    assert fetched.status_code == 200
+    assert fetched.json()["field_paths"] == [
+        {
+            "legacy_column": "underwriting_score",
+            "xpath": "(/Application/UnderwritingScore)[1]",
+            "cast_type": "INT",
+        }
+    ]
+
+    # list_xml_field_mappings must also carry field_paths (T053).
+    listed = client.get("/api/v1/xml-field-mappings")
+    assert listed.status_code == 200
+    listed_entry = next(m for m in listed.json() if m["id"] == mapping_id)
+    assert listed_entry["field_paths"][0]["legacy_column"] == "underwriting_score"
+
 
 @requires_postgres
 def test_lookup_rejects_unknown_mapping(client):

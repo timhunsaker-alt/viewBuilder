@@ -26,8 +26,8 @@ The docker-compose MS SQL Server fixture gains, alongside 001's sample tables:
    normalized tables. Draw join edges between them (e.g.
    `loan_application.application_id = loan_applicant.application_id`, etc.) until every
    table is connected.
-3. Switch to column-mapping mode; map every legacy-shape column to a source column from
-   the joined tables.
+3. Below the join graph, the column-mapping table lists every legacy-shape column; map
+   each one to a source table + column from the joined tables.
 4. Click **Preview** — confirm the generated `CREATE VIEW` SQL looks right and the sample
    rows show data in the expected column order.
 5. Click **Deploy** — confirm the view now exists in the target database and its
@@ -36,9 +36,17 @@ The docker-compose MS SQL Server fixture gains, alongside 001's sample tables:
    confirm a clean deploy reports zero discrepancies, and a deliberately-wrong column
    mapping (redeploy a version with one column pointed at the wrong source) is correctly
    flagged.
-7. For a flagged column, open the XML lookup panel, configure a `field_paths` entry
-   (XPath into the sample XML documents), and run the lookup — confirm it distinguishes
+7. For a flagged column, open the XML lookup panel. There is currently no frontend form
+   for creating the top-level `xml_field_mapping` itself (which XML table/identity/
+   payload columns to use) — like `POST /legacy-shapes` in step 1, create it once via
+   `POST /xml-field-mappings` pointed at `dbo.legacy_application_xml` before opening the
+   panel. Select that mapping, configure a `field_paths` entry (XPath into the sample XML
+   documents) for the flagged column, and run the lookup — confirm it distinguishes
    `found` (value returned), `field_missing` (document exists, field absent), and
+   `document_not_found`. `application_id` 5's sample document deliberately omits
+   `<CollateralValue>` (mirroring that row's `NULL` collateral value in the normalized
+   schema) — look up `collateral_value_cents` for identity `5` to see `field_missing`;
+   `application_id` 10 has no XML document at all, so any lookup against it reports
    `document_not_found`.
 
 ## Tests

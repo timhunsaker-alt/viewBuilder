@@ -44,6 +44,8 @@ export function XmlLookupPanel() {
     (m) => m.legacy_shape_capture_id === definitionQuery.data?.legacy_shape_capture_id,
   );
 
+  const selectedMapping = mappingsQuery.data?.find((m) => m.id === selectedMappingId);
+
   const lookupMutation = useMutation({
     mutationFn: () =>
       api.post<XmlLookupResult>(`/xml-field-mappings/${selectedMappingId}/lookup`, {
@@ -66,15 +68,22 @@ export function XmlLookupPanel() {
   });
 
   const addFieldPathMutation = useMutation({
-    mutationFn: () =>
-      // Note: this adds a version carrying only this one field-path entry. The
-      // contracts/api.md surface for xml-field-mappings doesn't expose a "get current
-      // field_paths" read, so this panel can't merge in prior entries client-side —
-      // re-adding an earlier column's path here would need to be repeated alongside
-      // this one in the same call.
-      api.post(`/xml-field-mappings/${selectedMappingId}/versions`, {
-        field_paths: [{ legacy_column: legacyColumn, xpath, cast_type: castType }],
-      }),
+    mutationFn: () => {
+      // T053 fix: GET /xml-field-mappings/{id} now returns the current version's
+      // `field_paths` directly (see services/api.ts's XmlFieldMapping.field_paths), so
+      // this panel merges the new entry into what's already configured instead of
+      // clobbering every previously-added column's path with a version that only
+      // carries this one (each version is the *complete* field_paths list — Principle
+      // II versions are immutable, not diffed/merged server-side).
+      const existing = selectedMapping?.field_paths ?? [];
+      const merged = [
+        ...existing.filter((entry) => entry.legacy_column !== legacyColumn),
+        { legacy_column: legacyColumn, xpath, cast_type: castType },
+      ];
+      return api.post(`/xml-field-mappings/${selectedMappingId}/versions`, {
+        field_paths: merged,
+      });
+    },
     onSuccess: () => {
       setError(null);
       lookupMutation.mutate();

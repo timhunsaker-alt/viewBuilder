@@ -290,20 +290,20 @@ delivered.
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T049 [P] Playwright end-to-end test covering the full quickstart.md golden path
+- [X] T049 [P] Playwright end-to-end test covering the full quickstart.md golden path
       (capture shape → build join graph + column map → preview → deploy → reconcile →
       XML lookup) in `frontend/tests/e2e/legacy-compat-golden-path.spec.ts`
-- [ ] T050 [P] Reuse `ProductionGuard.tsx` (from 001) to gate the **Deploy** action in
+- [X] T050 [P] Reuse `ProductionGuard.tsx` (from 001) to gate the **Deploy** action in
       `ViewDefinitionEditor.tsx` the same way it gates **Execute** in 001's
       `DryRunResults.tsx`
-- [ ] T051 Update root `README.md` and `specs/002-legacy-compat-view/quickstart.md` after
+- [X] T051 Update root `README.md` and `specs/002-legacy-compat-view/quickstart.md` after
       running the golden path end-to-end as far as this sandbox allows; fix any drift
       found
-- [ ] T052 [P] Extend the existing audit-logging middleware
+- [X] T052 [P] Extend the existing audit-logging middleware
       (`backend/src/api/middleware.py`) to cover this feature's mutating endpoints
       (`POST /legacy-shapes`, `POST /view-definitions`, `.../versions`, `.../deploy`,
       `POST /xml-field-mappings`, `.../versions`)
-- [ ] T053 Review all new endpoints against `contracts/api.md` for drift; fix any real
+- [X] T053 Review all new endpoints against `contracts/api.md` for drift; fix any real
       code/doc mismatches found (same practice as 001's T069)
 
 ---

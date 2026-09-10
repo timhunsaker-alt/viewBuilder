@@ -240,7 +240,13 @@ def deploy_view_definition(
     except ProductionConfirmationRequiredError as exc:
         raise ApiError("production_confirmation_required", str(exc), 409) from exc
     except DeploymentVerificationError as exc:
-        raise ApiError("deploy_verification_failed", str(exc), 500) from exc
+        # T053: contracts/api.md's error-code catalogue for this feature does not
+        # include `deploy_verification_failed` — the closest documented code for "a
+        # shape no longer matches what was expected" is `schema_mismatch` (already used
+        # above for pre-deploy drift); reusing it here for the post-deploy verification
+        # failure (SC-002) keeps this endpoint's error codes within the documented set
+        # rather than introducing an undocumented one.
+        raise ApiError("schema_mismatch", str(exc), 409) from exc
     except ConnectionUnreachableError as exc:
         raise ApiError("connection_unreachable", str(exc), 503) from exc
     log_audit_event(

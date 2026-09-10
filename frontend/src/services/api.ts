@@ -159,6 +159,11 @@ export interface XmlFieldMapping {
   xml_identity_column: string;
   xml_payload_column: string;
   current_version_id: string | null;
+  // T053: the current version's field_paths, attached directly to this read shape so
+  // a caller can merge a new entry against what's already configured without a
+  // separate "get current version content" endpoint — see backend/src/api/
+  // xml_mappings.py's `_mapping_out`.
+  field_paths: XmlFieldPathEntry[];
 }
 
 export interface XmlFieldMappingVersion {

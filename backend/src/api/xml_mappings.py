@@ -59,6 +59,16 @@ class XmlFieldMappingOut(BaseModel):
     xml_identity_column: str
     xml_payload_column: str
     current_version_id: uuid.UUID | None
+    # T053: the prior US4 implementer noted that nothing in this API surface let a
+    # caller read a mapping's *current* field_paths in a usable form — POST .../versions
+    # requires the full field_paths list every time (Principle II: a version is
+    # immutable, never merged server-side), but there was no way to fetch what the
+    # current version already has to merge against client-side. Rather than adding a
+    # new endpoint not described by contracts/api.md's "List/fetch, with
+    # current_version_id" line, this field enriches that same documented response with
+    # the current version's field_paths (empty list when no version exists yet) so
+    # `GET /xml-field-mappings/{id}` alone is enough to merge-and-append a new entry.
+    field_paths: list[dict] = []
 
     model_config = {"from_attributes": True}
 
@@ -77,6 +87,26 @@ class XmlLookupResultOut(BaseModel):
     legacy_column: str
     outcome: str
     value: str | None = None
+
+
+def _mapping_out(db: Session, mapping: XmlFieldMapping) -> XmlFieldMappingOut:
+    """Attaches the current version's `field_paths` (T053) to the documented
+    XmlFieldMapping read shape — see the field's docstring above."""
+    field_paths: list[dict] = []
+    if mapping.current_version_id is not None:
+        version = db.get(XmlFieldMappingVersion, mapping.current_version_id)
+        if version is not None:
+            field_paths = version.field_paths
+    return XmlFieldMappingOut(
+        id=mapping.id,
+        legacy_shape_capture_id=mapping.legacy_shape_capture_id,
+        xml_connection_id=mapping.xml_connection_id,
+        xml_table_name=mapping.xml_table_name,
+        xml_identity_column=mapping.xml_identity_column,
+        xml_payload_column=mapping.xml_payload_column,
+        current_version_id=mapping.current_version_id,
+        field_paths=field_paths,
+    )
 
 
 @router.post("", response_model=XmlFieldMappingOut, status_code=201)
@@ -119,12 +149,13 @@ def create_xml_field_mapping(body: XmlFieldMappingCreate, db: Session = Depends(
         version=1,
         details={"xml_table_name": mapping.xml_table_name},
     )
-    return mapping
+    return _mapping_out(db, mapping)
 
 
 @router.get("", response_model=list[XmlFieldMappingOut])
 def list_xml_field_mappings(db: Session = Depends(get_db)):
-    return list(db.query(XmlFieldMapping).order_by(XmlFieldMapping.xml_table_name).all())
+    mappings = db.query(XmlFieldMapping).order_by(XmlFieldMapping.xml_table_name).all()
+    return [_mapping_out(db, mapping) for mapping in mappings]
 
 
 @router.get("/{mapping_id}", response_model=XmlFieldMappingOut)
@@ -132,7 +163,7 @@ def get_xml_field_mapping(mapping_id: uuid.UUID, db: Session = Depends(get_db)):
     mapping = db.get(XmlFieldMapping, mapping_id)
     if mapping is None:
         raise ApiError("not_found", f"no xml_field_mapping {mapping_id}", 404)
-    return mapping
+    return _mapping_out(db, mapping)
 
 
 @router.post("/{mapping_id}/versions", response_model=XmlFieldMappingVersionOut, status_code=201)
