@@ -5,6 +5,8 @@ import { MappingEditor } from "./pages/MappingEditor";
 import { RetirementConfig } from "./pages/RetirementConfig";
 import { RunHistory } from "./pages/RunHistory";
 import { TablePicker } from "./pages/TablePicker";
+import { ViewDefinitionEditor } from "./pages/ViewDefinitionEditor";
+import { ViewPreviewResults } from "./pages/ViewPreviewResults";
 
 export function App() {
   return (
@@ -16,6 +18,9 @@ export function App() {
       <Route path="/enum-translations" element={<EnumTranslationEditor />} />
       <Route path="/retirement/new" element={<RetirementConfig />} />
       <Route path="/runs" element={<RunHistory />} />
+      <Route path="/view-definitions/new" element={<ViewDefinitionEditor />} />
+      <Route path="/view-definitions/:viewDefinitionId" element={<ViewDefinitionEditor />} />
+      <Route path="/view-definitions/:viewDefinitionId/preview" element={<ViewPreviewResults />} />
     </Routes>
   );
 }

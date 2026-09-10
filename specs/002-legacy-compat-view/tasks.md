@@ -38,7 +38,7 @@ the same `backend/` and `frontend/` trees.
 **Purpose**: Extend the existing local fixtures with what this feature needs; no new
 project scaffolding required since this builds on 001's backend/frontend in place.
 
-- [ ] T001 Extend `backend/docker/mssql-init/seed.sql` (or add a new
+- [X] T001 Extend `backend/docker/mssql-init/seed.sql` (or add a new
       `backend/docker/mssql-init/seed_legacy_compat.sql` sourced by the same init flow)
       with: an old wide table (`dbo.legacy_loan_application`, ~15-20 columns), a 5-table
       normalized replacement schema (`dbo.loan_application`, `dbo.loan_applicant`,
@@ -47,7 +47,7 @@ project scaffolding required since this builds on 001's backend/frontend in plac
       with `application_id` + an `xml` payload column) with sample documents — including
       at least one deliberately missing a field also missing from the normalized schema
       (per quickstart.md)
-- [ ] T002 [P] Ensure the new seed objects are dropped in reverse-dependency order at the
+- [X] T002 [P] Ensure the new seed objects are dropped in reverse-dependency order at the
       top of the seed script, matching the idempotent-redeploy fix already applied to
       001's seed data
 
@@ -62,29 +62,29 @@ implemented
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 [P] Implement `legacy_shape_capture` SQLAlchemy model in
+- [X] T003 [P] Implement `legacy_shape_capture` SQLAlchemy model in
       `backend/src/models/legacy_shape.py` and its Alembic migration (data-model.md
       §legacy_shape_capture)
-- [ ] T004 [P] Implement `view_definition` + `view_definition_version` SQLAlchemy models
+- [X] T004 [P] Implement `view_definition` + `view_definition_version` SQLAlchemy models
       in `backend/src/models/view_definition.py` and their Alembic migration (data-model.md
       §view_definition, §view_definition_version)
-- [ ] T005 [P] Implement `view_deployment_log` SQLAlchemy model in
+- [X] T005 [P] Implement `view_deployment_log` SQLAlchemy model in
       `backend/src/models/deployment_log.py` and its Alembic migration (data-model.md
       §view_deployment_log)
-- [ ] T006 [P] Implement `reconciliation_run` SQLAlchemy model in
+- [X] T006 [P] Implement `reconciliation_run` SQLAlchemy model in
       `backend/src/models/reconciliation.py` and its Alembic migration (data-model.md
       §reconciliation_run)
-- [ ] T007 [P] Implement `xml_field_mapping` + `xml_field_mapping_version` SQLAlchemy
+- [X] T007 [P] Implement `xml_field_mapping` + `xml_field_mapping_version` SQLAlchemy
       models in `backend/src/models/xml_field_mapping.py` and their Alembic migration
       (data-model.md §xml_field_mapping, §xml_field_mapping_version)
-- [ ] T008 Extend `backend/src/api/main.py` to mount the new routers (`legacy_shapes`,
+- [X] T008 Extend `backend/src/api/main.py` to mount the new routers (`legacy_shapes`,
       `view_definitions`, `reconciliation`, `xml_mappings`) under `/api/v1`, reusing the
       existing error-response shape and audit-logging middleware from 001
-- [ ] T009 [P] Add the new error codes (`name_collision`, `not_deployed`, and reused
+- [X] T009 [P] Add the new error codes (`name_collision`, `not_deployed`, and reused
       `schema_mismatch`/`mapping_invalid`/`connection_unreachable`/
       `production_confirmation_required`) to `backend/src/api/errors.py` (or wherever
       001's `ApiError` catalogue lives) per contracts/api.md
-- [ ] T010 [P] Configure frontend typed API client additions in
+- [X] T010 [P] Configure frontend typed API client additions in
       `frontend/src/services/api.ts` for the new endpoints (legacy-shapes,
       view-definitions, reconciliation, xml-field-mappings)
 
@@ -104,64 +104,64 @@ view's introspected columns exactly match the old table's, in order.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T011 [P] [US1] Contract test `POST /legacy-shapes` and `GET /legacy-shapes/{id}/drift`
+- [X] T011 [P] [US1] Contract test `POST /legacy-shapes` and `GET /legacy-shapes/{id}/drift`
       in `backend/tests/contract/test_legacy_shapes.py` (against docker-compose mssql
       fixture)
-- [ ] T012 [P] [US1] Contract test `POST /view-definitions` rejecting incomplete
+- [X] T012 [P] [US1] Contract test `POST /view-definitions` rejecting incomplete
       `column_mappings` (FR-004) and unreachable `join_graph` tables (FR-002) in
       `backend/tests/contract/test_view_definitions_crud.py`
-- [ ] T013 [P] [US1] Contract test `POST /view-definitions` rejecting a `name` that
+- [X] T013 [P] [US1] Contract test `POST /view-definitions` rejecting a `name` that
       collides with the legacy shape's own `table_name` in
       `backend/tests/contract/test_view_definitions_crud.py`
-- [ ] T014 [P] [US1] Unit test: `ddl_generator` produces a `CREATE OR ALTER VIEW` whose
+- [X] T014 [P] [US1] Unit test: `ddl_generator` produces a `CREATE OR ALTER VIEW` whose
       column list/order exactly matches a given `legacy_shape_capture.columns` for a
       variety of join-graph shapes (star join, chain join) in
       `backend/tests/unit/test_ddl_generator.py`
-- [ ] T015 [P] [US1] Unit test: join-graph reachability validation rejects an orphan table
+- [X] T015 [P] [US1] Unit test: join-graph reachability validation rejects an orphan table
       in `backend/tests/unit/test_join_graph_validation.py`
-- [ ] T016 [P] [US1] Contract test `POST /view-definitions/{id}/preview` returns generated
+- [X] T016 [P] [US1] Contract test `POST /view-definitions/{id}/preview` returns generated
       SQL + sample rows and performs zero DDL (verify no new object exists after) in
       `backend/tests/contract/test_view_preview.py`
-- [ ] T017 [P] [US1] Integration test against seeded mssql fixture: full
+- [X] T017 [P] [US1] Integration test against seeded mssql fixture: full
       capture → define → preview → deploy round trip, asserting the deployed view's
       introspected columns match the legacy shape exactly, in
       `backend/tests/integration/test_view_deploy_roundtrip.py`
-- [ ] T018 [P] [US1] Frontend unit test for `JoinGraphCanvas` edge creation/removal in
+- [X] T018 [P] [US1] Frontend unit test for `JoinGraphCanvas` edge creation/removal in
       `frontend/tests/unit/join_graph_canvas.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T019 [US1] Implement `legacy_shape_service` in
+- [X] T019 [US1] Implement `legacy_shape_service` in
       `backend/src/services/legacy_shape_service.py` — capture (introspect + store) and
       drift detection (re-introspect vs. stored, FR-001/FR-013; depends on T003)
-- [ ] T020 [US1] Implement `POST /legacy-shapes`, `GET /legacy-shapes`,
+- [X] T020 [US1] Implement `POST /legacy-shapes`, `GET /legacy-shapes`,
       `GET /legacy-shapes/{id}`, `GET /legacy-shapes/{id}/drift` routes in
       `backend/src/api/legacy_shapes.py` (depends on T019)
-- [ ] T021 [US1] Implement join-graph reachability validation in
+- [X] T021 [US1] Implement join-graph reachability validation in
       `backend/src/services/view_definition_service.py` (FR-002; depends on T004)
-- [ ] T022 [US1] Implement column-mapping completeness validation (every legacy-shape
+- [X] T022 [US1] Implement column-mapping completeness validation (every legacy-shape
       column covered, FR-004) in `backend/src/services/view_definition_service.py`
       (depends on T021)
-- [ ] T023 [US1] Implement `ddl_generator` in `backend/src/services/ddl_generator.py` —
+- [X] T023 [US1] Implement `ddl_generator` in `backend/src/services/ddl_generator.py` —
       builds the `CREATE OR ALTER VIEW` SQL from a join graph + column mapping, preserving
       legacy-shape column order (FR-006; depends on T022)
-- [ ] T024 [US1] Implement `POST /view-definitions`, `GET /view-definitions`,
+- [X] T024 [US1] Implement `POST /view-definitions`, `GET /view-definitions`,
       `GET /view-definitions/{id}`, `GET /view-definitions/{id}/versions`,
       `POST /view-definitions/{id}/versions` routes in
       `backend/src/api/view_definitions.py` (depends on T023)
-- [ ] T025 [US1] Implement `POST /view-definitions/{id}/preview` — re-check drift, generate
+- [X] T025 [US1] Implement `POST /view-definitions/{id}/preview` — re-check drift, generate
       SQL, run it as a read-only `SELECT` for a sample, log a `view_deployment_log` row
       with `mode=preview` (FR-005; depends on T020, T023)
-- [ ] T026 [US1] Implement `POST /view-definitions/{id}/deploy` — re-check drift, execute
+- [X] T026 [US1] Implement `POST /view-definitions/{id}/deploy` — re-check drift, execute
       the generated DDL for real, log a `view_deployment_log` row with `mode=deploy`
       (FR-006/FR-008; depends on T025)
-- [ ] T027 [P] [US1] Build `JoinGraphCanvas.tsx` in
+- [X] T027 [P] [US1] Build `JoinGraphCanvas.tsx` in
       `frontend/src/components/canvas/JoinGraphCanvas.tsx` — multi-table nodes with
       draggable join edges (research.md §4)
-- [ ] T028 [US1] Build `ViewDefinitionEditor.tsx` in `frontend/src/pages/` wiring legacy
+- [X] T028 [US1] Build `ViewDefinitionEditor.tsx` in `frontend/src/pages/` wiring legacy
       shape selection + `JoinGraphCanvas` + the reused column-link canvas interaction for
       the final old-column → source mapping (depends on T027)
-- [ ] T029 [P] [US1] Build `ViewPreviewResults.tsx` in `frontend/src/pages/` showing
+- [X] T029 [P] [US1] Build `ViewPreviewResults.tsx` in `frontend/src/pages/` showing
       generated SQL + sample rows
 
 **Checkpoint**: User Story 1 is fully functional and independently testable/demoable —

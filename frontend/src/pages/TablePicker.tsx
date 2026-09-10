@@ -48,6 +48,9 @@ export function TablePicker() {
   return (
     <main>
       <h1>viewBuilder</h1>
+      <p>
+        <Link to="/view-definitions/new">Build a legacy-shape compatibility view →</Link>
+      </p>
       <section>
         <h2>1. Choose a connection</h2>
         <select
