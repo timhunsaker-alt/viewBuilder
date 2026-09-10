@@ -18,12 +18,25 @@ def health() -> dict:
 def _mount_routers() -> None:
     # Imported lazily so a router module can be added incrementally without breaking
     # `from src.api.main import app` before all routers exist.
-    from src.api import connections, enum_translations, mappings, runs  # noqa: PLC0415
+    from src.api import (  # noqa: PLC0415
+        connections,
+        enum_translations,
+        legacy_shapes,
+        mappings,
+        reconciliation,
+        runs,
+        view_definitions,
+        xml_mappings,
+    )
 
     app.include_router(connections.router, prefix="/api/v1")
     app.include_router(mappings.router, prefix="/api/v1")
     app.include_router(enum_translations.router, prefix="/api/v1")
     app.include_router(runs.router, prefix="/api/v1")
+    app.include_router(legacy_shapes.router, prefix="/api/v1")
+    app.include_router(view_definitions.router, prefix="/api/v1")
+    app.include_router(reconciliation.router, prefix="/api/v1")
+    app.include_router(xml_mappings.router, prefix="/api/v1")
 
 
 _mount_routers()

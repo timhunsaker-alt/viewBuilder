@@ -12,7 +12,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.db.session import Base  # noqa: E402
 
 # Import all models so they register on Base.metadata for autogenerate support.
-from src.models import connection_config, enum_translation, mapping, run_log  # noqa: E402,F401
+from src.models import (  # noqa: E402,F401
+    connection_config,
+    deployment_log,
+    enum_translation,
+    legacy_shape,
+    mapping,
+    reconciliation,
+    run_log,
+    view_definition,
+    xml_field_mapping,
+)
 from src.settings import settings  # noqa: E402
 
 # this is the Alembic Config object, which provides

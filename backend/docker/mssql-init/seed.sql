@@ -58,6 +58,26 @@ IF OBJECT_ID('dbo.legacy_account', 'U') IS NOT NULL DROP TABLE dbo.legacy_accoun
 GO
 
 -- ============================================================================
+-- 002-legacy-compat-view fixtures: an old wide table, its 5-table normalized
+-- replacement, and a legacy XML document table. Dropped here (reverse-dependency
+-- order) so this script stays safely re-runnable, matching the pattern above.
+-- ============================================================================
+IF OBJECT_ID('dbo.legacy_application_xml', 'U') IS NOT NULL DROP TABLE dbo.legacy_application_xml;
+GO
+IF OBJECT_ID('dbo.loan_document_ref', 'U') IS NOT NULL DROP TABLE dbo.loan_document_ref;
+GO
+IF OBJECT_ID('dbo.loan_underwriting', 'U') IS NOT NULL DROP TABLE dbo.loan_underwriting;
+GO
+IF OBJECT_ID('dbo.loan_collateral', 'U') IS NOT NULL DROP TABLE dbo.loan_collateral;
+GO
+IF OBJECT_ID('dbo.loan_applicant', 'U') IS NOT NULL DROP TABLE dbo.loan_applicant;
+GO
+IF OBJECT_ID('dbo.loan_application', 'U') IS NOT NULL DROP TABLE dbo.loan_application;
+GO
+IF OBJECT_ID('dbo.legacy_loan_application', 'U') IS NOT NULL DROP TABLE dbo.legacy_loan_application;
+GO
+
+-- ============================================================================
 -- Shared enum-code lookup table: enum_id (the raw code business tables store),
 -- name (the enum's category/domain), value (the human-readable meaning).
 -- This is the "one big lookup table for many enum domains" pattern common in older
@@ -523,4 +543,198 @@ CREATE TABLE dbo.retirement_audit (
     retired_at DATETIME2 NOT NULL,
     mapping_version NVARCHAR(100) NOT NULL
 );
+GO
+
+-- ============================================================================
+-- 002-legacy-compat-view fixture 1: the "old wide table" (~19 columns) standing in
+-- for the real 80-column loan-provisioning table this feature exists to reconstruct
+-- the shape of (spec.md's motivating scenario). Still "live" — never written to by
+-- this feature; only introspected (legacy_shape_capture) and read (reconciliation).
+-- ============================================================================
+IF OBJECT_ID('dbo.legacy_loan_application', 'U') IS NOT NULL DROP TABLE dbo.legacy_loan_application;
+GO
+CREATE TABLE dbo.legacy_loan_application (
+    application_id INT PRIMARY KEY,
+    applicant_first_name NVARCHAR(100) NOT NULL,
+    applicant_last_name NVARCHAR(100) NOT NULL,
+    applicant_ssn_last4 NVARCHAR(4) NOT NULL,
+    applicant_email NVARCHAR(200) NOT NULL,
+    applicant_phone NVARCHAR(20) NOT NULL,
+    loan_amount_cents BIGINT NOT NULL,
+    loan_purpose NVARCHAR(100) NOT NULL,
+    interest_rate_bps INT NOT NULL,
+    term_months INT NOT NULL,
+    collateral_description NVARCHAR(200) NULL,
+    collateral_value_cents BIGINT NULL,
+    collateral_type NVARCHAR(50) NULL,
+    underwriter_name NVARCHAR(150) NOT NULL,
+    underwriting_decision NVARCHAR(50) NOT NULL,
+    underwriting_score INT NOT NULL,
+    document_ref_number NVARCHAR(100) NOT NULL,
+    application_date DATE NOT NULL,
+    status NVARCHAR(50) NOT NULL
+);
+GO
+
+INSERT INTO dbo.legacy_loan_application (
+    application_id, applicant_first_name, applicant_last_name, applicant_ssn_last4,
+    applicant_email, applicant_phone, loan_amount_cents, loan_purpose, interest_rate_bps,
+    term_months, collateral_description, collateral_value_cents, collateral_type,
+    underwriter_name, underwriting_decision, underwriting_score, document_ref_number,
+    application_date, status
+) VALUES
+    (1, 'Ada', 'Lovelace', '1234', 'ada.lovelace@example.com', '555-0101', 25000000, 'Home Purchase', 425, 360, '123 Analytical Engine Way', 32000000, 'RealEstate', 'Grace Hopper', 'Approved', 780, 'DOC-0001', '2024-01-10', 'Funded'),
+    (2, 'Alan', 'Turing', '2345', 'alan.turing@example.com', '555-0102', 1800000, 'Auto', 599, 60, '2022 Sedan', 2100000, 'Vehicle', 'Grace Hopper', 'Approved', 710, 'DOC-0002', '2024-01-12', 'Funded'),
+    (3, 'Katherine', 'Johnson', '3456', 'katherine.johnson@example.com', '555-0103', 45000000, 'Business Expansion', 675, 120, 'Commercial Building', 60000000, 'RealEstate', 'Margaret Hamilton', 'Approved', 745, 'DOC-0003', '2024-01-18', 'Funded'),
+    (4, 'Barbara', 'Liskov', '4567', 'barbara.liskov@example.com', '555-0104', 500000, 'Personal', 899, 36, NULL, NULL, NULL, 'Margaret Hamilton', 'Denied', 590, 'DOC-0004', '2024-01-20', 'Closed'),
+    (5, 'Radia', 'Perlman', '5678', 'radia.perlman@example.com', '555-0105', 12000000, 'Home Equity', 512, 180, 'Second Lien Residence', 18000000, 'RealEstate', 'Grace Hopper', 'Approved', 760, 'DOC-0005', '2024-02-01', 'Funded'),
+    (6, 'Frances', 'Allen', '6789', 'frances.allen@example.com', '555-0106', 2200000, 'Auto', 549, 72, '2023 Truck', 2450000, 'Vehicle', 'Margaret Hamilton', 'Approved', 700, 'DOC-0006', '2024-02-05', 'Funded'),
+    (7, 'Shafi', 'Goldwasser', '7890', 'shafi.goldwasser@example.com', '555-0107', 8000000, 'Business Expansion', 610, 84, 'Office Equipment', 9000000, 'Equipment', 'Grace Hopper', 'Approved', 690, 'DOC-0007', '2024-02-14', 'Funded'),
+    (8, 'Adele', 'Goldberg', '8901', 'adele.goldberg@example.com', '555-0108', 350000, 'Personal', 950, 24, NULL, NULL, NULL, 'Margaret Hamilton', 'Approved', 650, 'DOC-0008', '2024-02-20', 'Funded'),
+    (9, 'Jean', 'Bartik', '9012', 'jean.bartik@example.com', '555-0109', 30000000, 'Home Purchase', 439, 360, '456 Colossus Court', 38000000, 'RealEstate', 'Grace Hopper', 'Approved', 800, 'DOC-0009', '2024-03-01', 'Funded'),
+    (10, 'Kathleen', 'Booth', '0123', 'kathleen.booth@example.com', '555-0110', 1500000, 'Auto', 575, 60, '2021 SUV', 1750000, 'Vehicle', 'Margaret Hamilton', 'Approved', 715, 'DOC-0010', '2024-03-05', 'Funded');
+GO
+
+-- ============================================================================
+-- 002-legacy-compat-view fixture 2: the 5-table normalized replacement schema,
+-- joined by a shared application_id (research.md §4 star join), holding the exact
+-- same data as dbo.legacy_loan_application above split across tables.
+-- ============================================================================
+IF OBJECT_ID('dbo.loan_application', 'U') IS NOT NULL DROP TABLE dbo.loan_application;
+GO
+CREATE TABLE dbo.loan_application (
+    application_id INT PRIMARY KEY,
+    loan_amount_cents BIGINT NOT NULL,
+    loan_purpose NVARCHAR(100) NOT NULL,
+    interest_rate_bps INT NOT NULL,
+    term_months INT NOT NULL,
+    application_date DATE NOT NULL,
+    status NVARCHAR(50) NOT NULL
+);
+GO
+
+IF OBJECT_ID('dbo.loan_applicant', 'U') IS NOT NULL DROP TABLE dbo.loan_applicant;
+GO
+CREATE TABLE dbo.loan_applicant (
+    application_id INT PRIMARY KEY REFERENCES dbo.loan_application(application_id),
+    first_name NVARCHAR(100) NOT NULL,
+    last_name NVARCHAR(100) NOT NULL,
+    ssn_last4 NVARCHAR(4) NOT NULL,
+    email NVARCHAR(200) NOT NULL,
+    phone NVARCHAR(20) NOT NULL
+);
+GO
+
+IF OBJECT_ID('dbo.loan_collateral', 'U') IS NOT NULL DROP TABLE dbo.loan_collateral;
+GO
+CREATE TABLE dbo.loan_collateral (
+    application_id INT PRIMARY KEY REFERENCES dbo.loan_application(application_id),
+    description NVARCHAR(200) NULL,
+    value_cents BIGINT NULL,
+    collateral_type NVARCHAR(50) NULL
+);
+GO
+
+IF OBJECT_ID('dbo.loan_underwriting', 'U') IS NOT NULL DROP TABLE dbo.loan_underwriting;
+GO
+CREATE TABLE dbo.loan_underwriting (
+    application_id INT PRIMARY KEY REFERENCES dbo.loan_application(application_id),
+    underwriter_name NVARCHAR(150) NOT NULL,
+    decision NVARCHAR(50) NOT NULL,
+    score INT NOT NULL
+);
+GO
+
+IF OBJECT_ID('dbo.loan_document_ref', 'U') IS NOT NULL DROP TABLE dbo.loan_document_ref;
+GO
+CREATE TABLE dbo.loan_document_ref (
+    application_id INT PRIMARY KEY REFERENCES dbo.loan_application(application_id),
+    document_ref_number NVARCHAR(100) NOT NULL
+);
+GO
+
+INSERT INTO dbo.loan_application (application_id, loan_amount_cents, loan_purpose, interest_rate_bps, term_months, application_date, status) VALUES
+    (1, 25000000, 'Home Purchase', 425, 360, '2024-01-10', 'Funded'),
+    (2, 1800000, 'Auto', 599, 60, '2024-01-12', 'Funded'),
+    (3, 45000000, 'Business Expansion', 675, 120, '2024-01-18', 'Funded'),
+    (4, 500000, 'Personal', 899, 36, '2024-01-20', 'Closed'),
+    (5, 12000000, 'Home Equity', 512, 180, '2024-02-01', 'Funded'),
+    (6, 2200000, 'Auto', 549, 72, '2024-02-05', 'Funded'),
+    (7, 8000000, 'Business Expansion', 610, 84, '2024-02-14', 'Funded'),
+    (8, 350000, 'Personal', 950, 24, '2024-02-20', 'Funded'),
+    (9, 30000000, 'Home Purchase', 439, 360, '2024-03-01', 'Funded'),
+    (10, 1500000, 'Auto', 575, 60, '2024-03-05', 'Funded');
+GO
+
+INSERT INTO dbo.loan_applicant (application_id, first_name, last_name, ssn_last4, email, phone) VALUES
+    (1, 'Ada', 'Lovelace', '1234', 'ada.lovelace@example.com', '555-0101'),
+    (2, 'Alan', 'Turing', '2345', 'alan.turing@example.com', '555-0102'),
+    (3, 'Katherine', 'Johnson', '3456', 'katherine.johnson@example.com', '555-0103'),
+    (4, 'Barbara', 'Liskov', '4567', 'barbara.liskov@example.com', '555-0104'),
+    (5, 'Radia', 'Perlman', '5678', 'radia.perlman@example.com', '555-0105'),
+    (6, 'Frances', 'Allen', '6789', 'frances.allen@example.com', '555-0106'),
+    (7, 'Shafi', 'Goldwasser', '7890', 'shafi.goldwasser@example.com', '555-0107'),
+    (8, 'Adele', 'Goldberg', '8901', 'adele.goldberg@example.com', '555-0108'),
+    (9, 'Jean', 'Bartik', '9012', 'jean.bartik@example.com', '555-0109'),
+    (10, 'Kathleen', 'Booth', '0123', 'kathleen.booth@example.com', '555-0110');
+GO
+
+INSERT INTO dbo.loan_collateral (application_id, description, value_cents, collateral_type) VALUES
+    (1, '123 Analytical Engine Way', 32000000, 'RealEstate'),
+    (2, '2022 Sedan', 2100000, 'Vehicle'),
+    (3, 'Commercial Building', 60000000, 'RealEstate'),
+    (4, NULL, NULL, NULL),
+    (5, 'Second Lien Residence', 18000000, 'RealEstate'),
+    (6, '2023 Truck', 2450000, 'Vehicle'),
+    (7, 'Office Equipment', 9000000, 'Equipment'),
+    (8, NULL, NULL, NULL),
+    (9, '456 Colossus Court', 38000000, 'RealEstate'),
+    (10, '2021 SUV', 1750000, 'Vehicle');
+GO
+
+INSERT INTO dbo.loan_underwriting (application_id, underwriter_name, decision, score) VALUES
+    (1, 'Grace Hopper', 'Approved', 780),
+    (2, 'Grace Hopper', 'Approved', 710),
+    (3, 'Margaret Hamilton', 'Approved', 745),
+    (4, 'Margaret Hamilton', 'Denied', 590),
+    (5, 'Grace Hopper', 'Approved', 760),
+    (6, 'Margaret Hamilton', 'Approved', 700),
+    (7, 'Grace Hopper', 'Approved', 690),
+    (8, 'Margaret Hamilton', 'Approved', 650),
+    (9, 'Grace Hopper', 'Approved', 800),
+    (10, 'Margaret Hamilton', 'Approved', 715);
+GO
+
+INSERT INTO dbo.loan_document_ref (application_id, document_ref_number) VALUES
+    (1, 'DOC-0001'), (2, 'DOC-0002'), (3, 'DOC-0003'), (4, 'DOC-0004'), (5, 'DOC-0005'),
+    (6, 'DOC-0006'), (7, 'DOC-0007'), (8, 'DOC-0008'), (9, 'DOC-0009'), (10, 'DOC-0010');
+GO
+
+-- ============================================================================
+-- 002-legacy-compat-view fixture 3: legacy XML document store (US4 fallback
+-- lookup). Documents exist for application_id 1-9; application_id 10 has NO
+-- document at all (exercises the "document_not_found" outcome). Application 5's
+-- document deliberately omits <CollateralValue> — mirroring the same row's NULL
+-- collateral value_cents in the normalized schema above — so a field-mapping
+-- lookup against it exercises "field_missing" (document exists, field absent)
+-- rather than "found", per quickstart.md.
+-- ============================================================================
+IF OBJECT_ID('dbo.legacy_application_xml', 'U') IS NOT NULL DROP TABLE dbo.legacy_application_xml;
+GO
+CREATE TABLE dbo.legacy_application_xml (
+    application_id INT PRIMARY KEY,
+    xml_payload XML NOT NULL
+);
+GO
+
+INSERT INTO dbo.legacy_application_xml (application_id, xml_payload) VALUES
+    (1, '<Application><CollateralValue>32000000</CollateralValue><UnderwritingScore>780</UnderwritingScore></Application>'),
+    (2, '<Application><CollateralValue>2100000</CollateralValue><UnderwritingScore>710</UnderwritingScore></Application>'),
+    (3, '<Application><CollateralValue>60000000</CollateralValue><UnderwritingScore>745</UnderwritingScore></Application>'),
+    (4, '<Application><CollateralValue></CollateralValue><UnderwritingScore>590</UnderwritingScore></Application>'),
+    (5, '<Application><UnderwritingScore>760</UnderwritingScore></Application>'),
+    (6, '<Application><CollateralValue>2450000</CollateralValue><UnderwritingScore>700</UnderwritingScore></Application>'),
+    (7, '<Application><CollateralValue>9000000</CollateralValue><UnderwritingScore>690</UnderwritingScore></Application>'),
+    (8, '<Application><CollateralValue></CollateralValue><UnderwritingScore>650</UnderwritingScore></Application>'),
+    (9, '<Application><CollateralValue>38000000</CollateralValue><UnderwritingScore>800</UnderwritingScore></Application>');
 GO
