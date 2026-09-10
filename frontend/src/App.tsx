@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { DryRunResults } from "./pages/DryRunResults";
 import { EnumTranslationEditor } from "./pages/EnumTranslationEditor";
 import { MappingEditor } from "./pages/MappingEditor";
+import { ReconciliationResults } from "./pages/ReconciliationResults";
 import { RetirementConfig } from "./pages/RetirementConfig";
 import { RunHistory } from "./pages/RunHistory";
 import { TablePicker } from "./pages/TablePicker";
@@ -21,6 +22,10 @@ export function App() {
       <Route path="/view-definitions/new" element={<ViewDefinitionEditor />} />
       <Route path="/view-definitions/:viewDefinitionId" element={<ViewDefinitionEditor />} />
       <Route path="/view-definitions/:viewDefinitionId/preview" element={<ViewPreviewResults />} />
+      <Route
+        path="/view-definitions/:viewDefinitionId/reconcile"
+        element={<ReconciliationResults />}
+      />
     </Routes>
   );
 }

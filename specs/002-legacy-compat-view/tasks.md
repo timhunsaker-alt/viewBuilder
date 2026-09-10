@@ -216,29 +216,29 @@ discrepancy flagged, nothing else).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T036 [P] [US3] Unit test: reconciliation comparison logic correctly computes
+- [X] T036 [P] [US3] Unit test: reconciliation comparison logic correctly computes
       matched/old-only/view-only counts and per-column mismatch detail from two given row
       sets in `backend/tests/unit/test_reconciliation_engine.py`
-- [ ] T037 [P] [US3] Unit test: row-inflation is flagged distinctly from an ordinary
+- [X] T037 [P] [US3] Unit test: row-inflation is flagged distinctly from an ordinary
       mismatch when a join produces >1 view row per old-table identity (FR-014) in
       `backend/tests/unit/test_reconciliation_engine.py`
-- [ ] T038 [P] [US3] Contract test `POST /view-definitions/{id}/reconcile` returns
+- [X] T038 [P] [US3] Contract test `POST /view-definitions/{id}/reconcile` returns
       `not_deployed` for a version with no successful deploy log in
       `backend/tests/contract/test_reconciliation.py`
-- [ ] T039 [P] [US3] Integration test against seeded mssql fixture: reconcile a cleanly
+- [X] T039 [P] [US3] Integration test against seeded mssql fixture: reconcile a cleanly
       deployed view (zero discrepancies), then a deliberately-wrong-mapping redeploy
       (discrepancy correctly flagged and nothing else) in
       `backend/tests/integration/test_reconciliation_live.py`
 
 ### Implementation for User Story 3
 
-- [ ] T040 [US3] Implement `reconciliation_engine` in
+- [X] T040 [US3] Implement `reconciliation_engine` in
       `backend/src/services/reconciliation_engine.py` — keyed, chunked row/column compare
       per research.md §2 (FR-009/FR-014; depends on T004)
-- [ ] T041 [US3] Implement `POST /view-definitions/{id}/reconcile`,
+- [X] T041 [US3] Implement `POST /view-definitions/{id}/reconcile`,
       `GET /view-definitions/{id}/reconciliations`, `GET /reconciliations/{id}` routes in
       `backend/src/api/reconciliation.py` (depends on T040)
-- [ ] T042 [P] [US3] Build `ReconciliationResults.tsx` in `frontend/src/pages/` — counts
+- [X] T042 [P] [US3] Build `ReconciliationResults.tsx` in `frontend/src/pages/` — counts
       summary + per-row/column discrepancy detail view
 
 **Checkpoint**: User Stories 1, 2, AND 3 all work independently — the full "verify the
