@@ -43,6 +43,64 @@ def test_create_connection_never_echoes_credential_ref(client, db_session):
 
 
 @requires_postgres
+def test_create_windows_integrated_connection_needs_no_credential(client, db_session):
+    response = client.post(
+        "/api/v1/connections",
+        json={
+            "name": "windows-integrated-connection",
+            "role": "source",
+            "environment": "dev",
+            "host": "localhost",
+            "port": 1433,
+            "database": "viewbuilder_legacy",
+            "auth_mode": "windows_integrated",
+        },
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["auth_mode"] == "windows_integrated"
+    assert body["username"] is None
+    assert "credential_ref" not in body
+
+
+@requires_postgres
+def test_create_windows_integrated_connection_rejects_a_stray_credential_ref(client, db_session):
+    response = client.post(
+        "/api/v1/connections",
+        json={
+            "name": "windows-integrated-with-cred-mistake",
+            "role": "source",
+            "environment": "dev",
+            "host": "localhost",
+            "port": 1433,
+            "database": "viewbuilder_legacy",
+            "auth_mode": "windows_integrated",
+            "credential_ref": "shouldnt-be-here",
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "mapping_invalid"
+
+
+@requires_postgres
+def test_create_sql_connection_without_credential_ref_is_rejected(client, db_session):
+    response = client.post(
+        "/api/v1/connections",
+        json={
+            "name": "sql-auth-missing-cred",
+            "role": "source",
+            "environment": "dev",
+            "host": "localhost",
+            "port": 1433,
+            "database": "viewbuilder_legacy",
+            "auth_mode": "sql",
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "mapping_invalid"
+
+
+@requires_postgres
 def test_schema_introspection_reports_connection_unreachable_cleanly(client, sample_connection):
     """Without a real reachable SQL Server, the endpoint must fail with a clean, typed
     error (connection_unreachable) rather than a raw traceback/500 — this is the

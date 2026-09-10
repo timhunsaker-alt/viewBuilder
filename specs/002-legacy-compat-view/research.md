@@ -108,3 +108,41 @@ consistent with Constitution Principle I's bias toward reviewable, reversible st
 operation within the tool (rejected for this version: out of scope per spec Assumptions;
 revisit only if a future spec explicitly asks for it after this feature has been in
 production use).
+
+## 6. Windows authentication for `connection_config`: per-user delegation vs. service account
+
+**Decision**: `connection_config.auth_mode` supports exactly two values: `sql` (a stored
+SQL Server login, unchanged from 001) and `windows_integrated` — the ODBC driver's own
+`Trusted_Connection=yes` path, authenticating as the backend process's **single, fixed
+Windows/AD service-account identity**. There is no per-end-user delegation: every operator
+using a `windows_integrated` connection authenticates to SQL Server as the same service
+account, and per-action attribution is carried entirely by the existing `operator` field
+recorded in the structured audit log (`backend/src/api/middleware.py::log_audit_event`),
+not by the SQL Server connection identity itself.
+
+**Rationale**: True per-user Kerberos constrained delegation (S4U2Proxy) — where the
+backend authenticates to SQL Server *as the actual logged-in operator*, not as itself —
+requires the backend host to hold a Kerberos service ticket obtained on that specific
+user's behalf, which in turn requires either (a) the operator authenticating to the
+backend itself via Kerberos/SPNEGO (browser → IIS/Windows-auth middleware → constrained
+delegation), or (b) a domain-joined Windows/.NET component fronting the SQL connection,
+since constrained delegation is a Windows/AD protocol concept with no equivalent in
+`pyodbc`/unixODBC/FreeTDS running on Linux. This sandbox and this backend's deployment
+target (Linux containers on Docker Swarm, per `deploy/stack.yml`) have neither a
+domain-joined host nor a Windows-auth-capable front door, so a per-user delegation path
+could not be built here in a way that could actually be verified end-to-end — building
+unverifiable plumbing that silently falls back to something else on failure would violate
+Constitution Principle III's "no silent guessing" spirit applied to authentication
+identity. A fixed service-account identity, by contrast, is exactly what
+`Trusted_Connection=yes` already gives a domain-joined Linux/pyodbc host without any
+additional infrastructure, and per-operator accountability is preserved through the audit
+log rather than through the database connection identity — consistent with how `sql`-mode
+connections already work today (one shared `credential_ref`, with the human operator
+recorded separately).
+
+**Alternatives considered**: True per-user Kerberos constrained delegation (rejected: not
+buildable or verifiable from this Python/Linux backend without a Windows/.NET delegation
+component this project does not have); requiring users to enter their own Windows
+credentials per-session for SQL auth instead (rejected: reintroduces the exact
+credential-handling surface `windows_integrated` mode exists to avoid, and the spec's
+`sql` mode already covers the "distinct login per connection" case).

@@ -11,8 +11,17 @@ List saved `connection_config` entries. **Never** includes `credential_ref` or a
 material in the response.
 
 ### `POST /connections`
-Create a connection config. Body: `{name, role, environment, host, port, database,
-credential_ref}`. `credential_ref` is stored but never echoed back.
+Create a connection config. Body: `{name, role, environment, host, port, database, auth_mode?,
+username?, credential_ref?, operator?}`. `auth_mode` is `sql` (default) or
+`windows_integrated`. For `sql`, `username` (the real SQL login name) and `credential_ref`
+(an opaque pointer, resolved to the actual secret server-side) are both required —
+`credential_ref` is stored but never echoed back, and never returned by any `GET`. For
+`windows_integrated` (the backend's own Windows/AD service-account identity —
+`Trusted_Connection=yes`; see 002-legacy-compat-view/research.md §6 for why this is a single
+fixed identity rather than per-end-user delegation), `username`/`credential_ref` must be
+omitted entirely — there's no secret to store. Rejects with `invalid_auth_mode` if `auth_mode`
+isn't one of the two values, or `mapping_invalid` if the username/credential_ref presence
+doesn't match the chosen `auth_mode`.
 
 ### `GET /connections/{id}/schema`
 Introspect the live database at this connection: list tables, and for a given
@@ -115,8 +124,10 @@ resource/version id. This is in addition to (not a replacement for) the durable
 
 `code` values actually produced by the implementation: `not_found` (unknown connection,
 mapping, mapping version, enum translation table, or run id), `invalid_role` /
-`invalid_environment` (`POST /connections` with a `role`/`environment` outside the allowed
-enum), `mapping_invalid` (`POST /mappings` or `POST /mappings/{id}/versions` — bad column
+`invalid_environment` / `invalid_auth_mode` (`POST /connections` with a `role`/`environment`/
+`auth_mode` outside the allowed enum), `mapping_invalid` (`POST /connections` with a
+username/credential_ref that doesn't match the chosen `auth_mode`; or `POST /mappings` or
+`POST /mappings/{id}/versions` — bad column
 link, dangling connection/enum-translation-version reference, or missing retirement config,
 FR-026), `enum_translation_invalid` (`POST /enum-translations` or its `/versions` route —
 duplicate code within a version, or a malformed entry), `connection_unreachable`

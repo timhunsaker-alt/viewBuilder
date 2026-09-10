@@ -1,0 +1,255 @@
+/* viewBuilder design system — a clean, professional banking-software aesthetic
+   (deep navy + trust-blue palette, card-based layout, generous whitespace). This is
+   an original design for this internal tool, not a copy of any specific bank's
+   branding, logo, or trademarked identity. */
+
+:root {
+  --color-navy-900: #0a1f3d;
+  --color-navy-800: #0f2a4a;
+  --color-navy-700: #16385e;
+  --color-blue-600: #1d5fd6;
+  --color-blue-500: #2f6fe0;
+  --color-blue-50: #eaf1fd;
+  --color-ink: #17233a;
+  --color-ink-muted: #5b6b85;
+  --color-bg: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-border: #dbe2ee;
+  --color-success: #1a7f4e;
+  --color-success-bg: #e7f6ee;
+  --color-error: #b3261e;
+  --color-error-bg: #fdecec;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 1px 2px rgba(15, 42, 74, 0.06), 0 8px 24px rgba(15, 42, 74, 0.06);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-bg);
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--color-navy-900);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--color-blue-600);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-blue-500);
+  box-shadow: 0 0 0 3px var(--color-blue-50);
+}
+
+button {
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-navy-800);
+  background: var(--color-navy-800);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-navy-700);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ----- Setup screen ----- */
+
+.setup-hero {
+  background: linear-gradient(135deg, var(--color-navy-900), var(--color-navy-700));
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 40px 40px 36px;
+  margin-bottom: 28px;
+}
+
+.setup-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #bcd2ff;
+  margin-bottom: 12px;
+}
+
+.setup-hero h1 {
+  color: #fff;
+  font-size: 1.9rem;
+  margin: 0 0 8px;
+}
+
+.setup-hero p {
+  color: #cfe0ff;
+  margin: 0;
+  max-width: 58ch;
+  line-height: 1.5;
+}
+
+.setup-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 28px 32px;
+  margin-bottom: 20px;
+}
+
+.setup-card h2 {
+  font-size: 1.05rem;
+  margin: 0 0 4px;
+}
+
+.setup-card__hint {
+  color: var(--color-ink-muted);
+  font-size: 0.88rem;
+  margin: 0 0 20px;
+}
+
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.setup-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-navy-800);
+}
+
+.setup-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.setup-auth-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.setup-auth-option {
+  flex: 1;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  cursor: pointer;
+  background: var(--color-surface);
+  /* Overrides the global <button> reset — this is a selectable option card, not the
+     filled navy call-to-action button used elsewhere. */
+  color: inherit;
+  font-weight: normal;
+  text-align: left;
+}
+
+.setup-auth-option:hover:not(:disabled) {
+  background: var(--color-surface);
+  border-color: var(--color-blue-500);
+}
+
+.setup-auth-option[data-selected="true"] {
+  border-color: var(--color-blue-500);
+  background: var(--color-blue-50);
+}
+
+.setup-auth-option strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--color-navy-900);
+  margin-bottom: 3px;
+}
+
+.setup-auth-option span {
+  font-size: 0.82rem;
+  color: var(--color-ink-muted);
+}
+
+.setup-trust-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--color-ink-muted);
+  margin-top: 18px;
+}
+
+.setup-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.setup-banner {
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.setup-banner--success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid #b7e4c7;
+}
+
+.setup-banner--error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid #f3b8b4;
+}

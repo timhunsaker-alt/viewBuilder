@@ -51,14 +51,35 @@ def resolve_credential(credential_ref: str) -> str:
 
 
 def build_engine(config: ConnectionConfig) -> Engine:
-    password = resolve_credential(config.credential_ref)
-    odbc_str = (
+    base = (
         "DRIVER={ODBC Driver 18 for SQL Server};"
         f"SERVER={config.host},{config.port};"
         f"DATABASE={config.database};"
-        f"UID={config.credential_ref};PWD={password};"
         "TrustServerCertificate=yes;"
     )
+    auth_mode = config.auth_mode or "sql"
+    if auth_mode == "windows_integrated":
+        # On-prem Windows Integrated Security: the backend process's own Windows/AD
+        # identity (a single fixed service account, not per-end-user delegation — see
+        # research.md §6) authenticates to SQL Server. No UID/PWD at all; the ODBC
+        # driver negotiates Kerberos/NTLM using the OS process's own credentials, which
+        # requires the host this backend runs on to actually be domain-joined — this
+        # module has no way to verify that itself, a misconfigured host simply surfaces
+        # as a normal ConnectionUnreachableError below.
+        odbc_str = f"{base}Trusted_Connection=yes;"
+    else:
+        # `username` is the real SQL login name; `credential_ref` is only the opaque
+        # secret-store pointer. Older rows created before `username` existed have it
+        # unset, so credential_ref (which used to double as the login name) is kept as
+        # a fallback for those — new connections should always set `username`.
+        if not config.credential_ref:
+            raise ConnectionUnreachableError(
+                config.name, cause=ValueError("auth_mode='sql' requires a credential_ref")
+            )
+        password = resolve_credential(config.credential_ref)
+        login = config.username or config.credential_ref
+        odbc_str = f"{base}UID={login};PWD={password};"
+
     connection_url = f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc_str)}"
     try:
         return create_engine(connection_url, pool_pre_ping=True, future=True)

@@ -5,6 +5,7 @@ import { MappingEditor } from "./pages/MappingEditor";
 import { ReconciliationResults } from "./pages/ReconciliationResults";
 import { RetirementConfig } from "./pages/RetirementConfig";
 import { RunHistory } from "./pages/RunHistory";
+import { Setup } from "./pages/Setup";
 import { TablePicker } from "./pages/TablePicker";
 import { ViewDefinitionEditor } from "./pages/ViewDefinitionEditor";
 import { ViewPreviewResults } from "./pages/ViewPreviewResults";
@@ -14,6 +15,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<TablePicker />} />
+      <Route path="/setup" element={<Setup />} />
       <Route path="/mappings/new" element={<MappingEditor />} />
       <Route path="/mappings/:mappingId" element={<MappingEditor />} />
       <Route path="/mappings/:mappingId/dry-run" element={<DryRunResults />} />

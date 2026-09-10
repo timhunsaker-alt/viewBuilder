@@ -20,13 +20,17 @@ Represents a named, reusable reference to a SQL Server database (source or targe
 | role | enum(`source`, `target`, `either`) | What this connection may be used as in a mapping |
 | environment | enum(`dev`, `test`, `prod`) | Drives the production-confirmation gate (FR-016) |
 | host, port, database | string/int | Connection target |
-| credential_ref | string | Opaque reference into a secrets store — **never** the raw
-  credential itself (Constitution Principle VI) |
+| auth_mode | enum(`sql`, `windows_integrated`) | Default `sql`. See 002-legacy-compat-view/research.md §6 for why only a single-service-account flavor of Windows auth is supported, not per-end-user Kerberos delegation |
+| username | string, nullable | The real SQL login name (only meaningful when `auth_mode=sql`). Null for `windows_integrated` connections, which authenticate as the backend's own Windows/AD process identity instead — no username/secret stored at all |
+| credential_ref | string, nullable | Opaque reference into a secrets store — **never** the raw
+  credential itself (Constitution Principle VI). Required when `auth_mode=sql`; must be absent when `auth_mode=windows_integrated` |
 | created_at, updated_at | timestamp | |
 
 **Validation rules**: `environment = prod` connections cannot be deleted while any
 `mapping_version` referencing them has a `run_log_entry` with `outcome = completed` (preserve
 auditability). `credential_ref` is write-only through the API — never returned in a GET.
+`auth_mode=sql` requires `credential_ref`; `auth_mode=windows_integrated` must not be given a
+`username` or `credential_ref` (there is nothing to store for it).
 
 ## mapping_definition
 
