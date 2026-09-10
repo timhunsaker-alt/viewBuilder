@@ -140,6 +140,15 @@ export function ViewDefinitionEditor() {
     : undefined;
   const legacyColumns = legacyShape?.columns.map((c) => c.name) ?? [];
 
+  // Real column names per selected new-schema table, so the mapping row below can
+  // offer a dropdown of actual columns instead of asking the user to type/remember
+  // exact names — free-text only remains available for a genuine computed expression
+  // (e.g. a concatenation), via the "(custom expression)" option.
+  const columnsByTable = useMemo<Record<string, string[]>>(
+    () => Object.fromEntries(joinGraphTables.map((t) => [t.name, t.columns])),
+    [joinGraphTables],
+  );
+
   function toggleTable(table: string) {
     setSelectedTables((current) =>
       current.includes(table) ? current.filter((t) => t !== table) : [...current, table],
@@ -234,10 +243,12 @@ export function ViewDefinitionEditor() {
                 </option>
               ))}
             </select>
-            <p>
-              No legacy shape yet? Capture one on the <Link to="/">table picker</Link>, then use{" "}
-              <code>POST /legacy-shapes</code>.
-            </p>
+            {legacyShapesQuery.data?.length === 0 && (
+              <p>
+                No legacy shape yet? Capture one on the <Link to="/">table picker</Link>, then use{" "}
+                <code>POST /legacy-shapes</code>.
+              </p>
+            )}
           </section>
 
           <section>
@@ -330,13 +341,29 @@ export function ViewDefinitionEditor() {
                       </select>
                     </td>
                     <td>
-                      <input
-                        aria-label={`Source column or expression for ${legacyColumn}`}
-                        value={mapping?.source_column_or_expression ?? ""}
-                        onChange={(event) =>
-                          setMapping(legacyColumn, mapping?.source_table ?? "", event.target.value)
-                        }
-                      />
+                      {mapping?.source_table ? (
+                        <select
+                          aria-label={`Source column for ${legacyColumn}`}
+                          value={mapping?.source_column_or_expression ?? ""}
+                          onChange={(event) =>
+                            setMapping(legacyColumn, mapping.source_table ?? "", event.target.value)
+                          }
+                        >
+                          <option value="">Select column…</option>
+                          {(columnsByTable[mapping.source_table] ?? []).map((column) => (
+                            <option key={column} value={column}>
+                              {column}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          aria-label={`Source column or expression for ${legacyColumn}`}
+                          placeholder="raw SQL expression"
+                          value={mapping?.source_column_or_expression ?? ""}
+                          onChange={(event) => setMapping(legacyColumn, "", event.target.value)}
+                        />
+                      )}
                     </td>
                   </tr>
                 );

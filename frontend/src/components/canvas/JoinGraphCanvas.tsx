@@ -37,9 +37,9 @@ function TableNode({ data }: { data: TableNodeData }) {
   return (
     <div className="join-graph-table-node">
       <strong>{data.label}</strong>
-      <ul>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {data.columns.map((column) => (
-          <li key={column} data-column={column}>
+          <li key={column} data-column={column} style={{ position: "relative" }}>
             <Handle
               type="target"
               position={Position.Left}

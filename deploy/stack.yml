@@ -67,7 +67,7 @@ services:
         condition: on-failure
 
   frontend:
-    image: registry.vegadigital.dev/viewbuilder-frontend:test2
+    image: registry.vegadigital.dev/viewbuilder-frontend:test3
     networks:
       - viewbuilder-test-net
       - swarm-public

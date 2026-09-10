@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { type ColumnMappingLink, MappingCanvas } from "../components/canvas/MappingCanvas";
 import { api } from "../services/api";
 
@@ -42,6 +42,7 @@ interface Connection {
 export function MappingEditor() {
   const { mappingId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const state = (location.state as LocationState | null) ?? {};
   const queryClient = useQueryClient();
 
@@ -111,9 +112,12 @@ export function MappingEditor() {
         row_identity_column: sourceSchemaQuery.data?.columns?.[0]?.name ?? "",
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["mapping-versions", mappingId] });
       queryClient.invalidateQueries({ queryKey: ["mappings"] });
+      if (!mappingId && "id" in result) {
+        navigate(`/mappings/${(result as MappingDefinition).id}`);
+      }
     },
   });
 
