@@ -1,8 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.session import Base
@@ -28,9 +27,9 @@ class LegacyViewColumnRule(Base):
 
     __tablename__ = "legacy_view_column_rule"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     view_definition_version_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("view_definition_version.id"), nullable=False
+        Uuid(as_uuid=True), ForeignKey("view_definition_version.id"), nullable=False
     )
     legacy_table_name: Mapped[str] = mapped_column(String(400), nullable=False)
     compatibility_view_name: Mapped[str] = mapped_column(String(200), nullable=False)

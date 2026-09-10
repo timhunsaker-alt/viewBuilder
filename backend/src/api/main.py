@@ -40,3 +40,10 @@ def _mount_routers() -> None:
 
 
 _mount_routers()
+
+# Every model module is now imported (transitively, via the routers above), so it's
+# safe to create tables for a local SQLite metadata store now. No-op against Postgres
+# — that path is still migrated with Alembic (see db/session.py::ensure_sqlite_schema).
+from src.db.session import ensure_sqlite_schema  # noqa: E402
+
+ensure_sqlite_schema()

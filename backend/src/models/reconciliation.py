@@ -1,8 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.session import Base
@@ -19,9 +18,9 @@ class ReconciliationRun(Base):
 
     __tablename__ = "reconciliation_run"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     view_definition_version_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("view_definition_version.id"), nullable=False
+        Uuid(as_uuid=True), ForeignKey("view_definition_version.id"), nullable=False
     )
     identity_column: Mapped[str] = mapped_column(String(200), nullable=False)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -34,4 +33,4 @@ class ReconciliationRun(Base):
     rows_view_only: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     rows_with_column_mismatch: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     row_inflation_flagged: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    discrepancy_detail: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    discrepancy_detail: Mapped[list] = mapped_column(JSON, nullable=False, default=list)

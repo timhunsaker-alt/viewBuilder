@@ -87,6 +87,29 @@ The backend reads its metadata-store connection string and other settings from e
 variables / a `.env` file in `backend/` (see `backend/src/settings.py`); the default matches
 the `docker-compose.yml` Postgres service above.
 
+### No-install alternative: SQLite instead of Postgres
+
+If you can't install Docker or Postgres (e.g. a locked-down work machine), point the backend
+at a local SQLite file instead — no install, no server process, just a file:
+
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt -r requirements-dev.txt
+METADATA_DATABASE_URL="sqlite:///./viewbuilder.db" uvicorn src.api.main:app --reload --port 8000
+```
+
+(or put `METADATA_DATABASE_URL=sqlite:///./viewbuilder.db` in `backend/.env` instead of
+passing it inline). Skip `alembic upgrade head` entirely for this path — a `sqlite:///` URL
+makes the app create its own schema from the models directly on startup (there's no prior
+data to migrate for a fresh local file), so nothing else about running it differs from the
+Postgres path. This is exactly the same metadata store *shape* — connections, mappings, view
+definitions, run/reconciliation history — just persisted to a single local file instead of a
+server process. If you also can't reach a real MS SQL Server without your own domain login,
+use `auth_mode: "windows_integrated"` when creating a connection (via the Setup screen below)
+so the backend authenticates as your own logged-in Windows identity (`Trusted_Connection=yes`)
+instead of a stored SQL login.
+
 ## 3. Frontend
 
 ```bash
@@ -97,11 +120,10 @@ bun run dev    # Vite dev server on http://localhost:5173, proxies /api to local
 
 ## 4. Try the golden path
 
-There is currently no frontend form for creating a `connection_config` (v1's picker only
-lists connections that already exist), so the first step of the golden path goes through the
-API directly. The full walkthrough — including this step, drawing links on the canvas,
-attaching an enum translation, dry-running, executing, and configuring a retirement mapping —
-is in [`quickstart.md`](specs/001-sql-view-builder/quickstart.md#4-try-the-golden-path).
+Create a `connection_config` from the frontend's `/setup` screen (choose SQL Login or Windows
+Integrated authentication there), then follow the rest of the golden path — drawing links on
+the canvas, attaching an enum translation, dry-running, executing, and configuring a
+retirement mapping — in [`quickstart.md`](specs/001-sql-view-builder/quickstart.md#4-try-the-golden-path).
 
 ## 5. Try the legacy-compat-view golden path (002)
 

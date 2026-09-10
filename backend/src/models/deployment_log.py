@@ -1,8 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.session import Base
@@ -21,9 +20,9 @@ class ViewDeploymentLogEntry(Base):
 
     __tablename__ = "view_deployment_log"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     view_definition_version_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("view_definition_version.id"), nullable=False
+        Uuid(as_uuid=True), ForeignKey("view_definition_version.id"), nullable=False
     )
     mode: Mapped[str] = mapped_column(
         Enum(*DEPLOYMENT_MODES, name="deployment_mode"), nullable=False
@@ -34,6 +33,6 @@ class ViewDeploymentLogEntry(Base):
     outcome: Mapped[str | None] = mapped_column(
         Enum(*DEPLOYMENT_OUTCOMES, name="deployment_outcome"), nullable=True
     )
-    sample_rows: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
-    column_diff: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    sample_rows: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    column_diff: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     production_confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
