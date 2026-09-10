@@ -258,26 +258,26 @@ document at all (expect `document_not_found`).
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T043 [P] [US4] Unit test: pushdown lookup query correctly distinguishes all three
+- [X] T043 [P] [US4] Unit test: pushdown lookup query correctly distinguishes all three
       outcomes given controlled fixture data in
       `backend/tests/unit/test_xml_lookup_service.py`
-- [ ] T044 [P] [US4] Contract test `POST /xml-field-mappings/{id}/lookup` returns
+- [X] T044 [P] [US4] Contract test `POST /xml-field-mappings/{id}/lookup` returns
       `mapping_invalid` when no `field_paths` entry exists for the requested column in
       `backend/tests/contract/test_xml_field_mappings.py`
-- [ ] T045 [P] [US4] Integration test against seeded mssql fixture (using the sample XML
+- [X] T045 [P] [US4] Integration test against seeded mssql fixture (using the sample XML
       documents from T001): all three outcomes reproduced against real data in
       `backend/tests/integration/test_xml_lookup_live.py`
 
 ### Implementation for User Story 4
 
-- [ ] T046 [US4] Implement `xml_lookup_service` in
+- [X] T046 [US4] Implement `xml_lookup_service` in
       `backend/src/services/xml_lookup_service.py` — builds and runs the `.value()`/
       `EXISTS` pushdown query per research.md §1 (FR-011/FR-012; depends on T007)
-- [ ] T047 [US4] Implement `POST /xml-field-mappings`, `GET /xml-field-mappings`,
+- [X] T047 [US4] Implement `POST /xml-field-mappings`, `GET /xml-field-mappings`,
       `GET /xml-field-mappings/{id}`, `POST /xml-field-mappings/{id}/versions`,
       `POST /xml-field-mappings/{id}/lookup` routes in
       `backend/src/api/xml_mappings.py` (depends on T046)
-- [ ] T048 [P] [US4] Build `XmlLookupPanel.tsx` in `frontend/src/pages/` — field-path
+- [X] T048 [P] [US4] Build `XmlLookupPanel.tsx` in `frontend/src/pages/` — field-path
       configuration + lookup trigger + three-outcome result display, reachable from a
       flagged row in `ReconciliationResults.tsx` (depends on T042)
 

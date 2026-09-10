@@ -8,6 +8,7 @@ import { RunHistory } from "./pages/RunHistory";
 import { TablePicker } from "./pages/TablePicker";
 import { ViewDefinitionEditor } from "./pages/ViewDefinitionEditor";
 import { ViewPreviewResults } from "./pages/ViewPreviewResults";
+import { XmlLookupPanel } from "./pages/XmlLookupPanel";
 
 export function App() {
   return (
@@ -26,6 +27,7 @@ export function App() {
         path="/view-definitions/:viewDefinitionId/reconcile"
         element={<ReconciliationResults />}
       />
+      <Route path="/view-definitions/:viewDefinitionId/xml-lookup" element={<XmlLookupPanel />} />
     </Routes>
   );
 }
