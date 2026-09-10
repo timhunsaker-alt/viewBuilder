@@ -26,6 +26,7 @@ from src.models.legacy_shape import LegacyShapeCapture
 from src.models.view_definition import ViewDefinition, ViewDefinitionVersion
 from src.services.ddl_generator import build_select_sql
 from src.services.legacy_shape_service import LegacyShapeService
+from src.services.view_definition_service import compute_column_diff
 
 SAMPLE_ROW_CAP = 5
 
@@ -161,6 +162,30 @@ def deploy_view(
             "confirm_production=true is required to deploy (Constitution Principle VII)"
         )
 
+    # US2 AC3 (T034): if a prior version of this same definition was already live
+    # (had at least one successful deploy), compute column_diff relative to it before
+    # deploying this one — surfaced regardless of outcome, never silently absorbed.
+    previous_deploy = (
+        db.query(ViewDeploymentLogEntry)
+        .join(
+            ViewDefinitionVersion,
+            ViewDeploymentLogEntry.view_definition_version_id == ViewDefinitionVersion.id,
+        )
+        .filter(
+            ViewDefinitionVersion.view_definition_id == resolved.definition.id,
+            ViewDeploymentLogEntry.mode == "deploy",
+            ViewDeploymentLogEntry.outcome == "completed",
+        )
+        .order_by(ViewDeploymentLogEntry.started_at.desc())
+        .first()
+    )
+    column_diff = None
+    if previous_deploy is not None:
+        previous_version = db.get(ViewDefinitionVersion, previous_deploy.view_definition_version_id)
+        previous_columns = [m["legacy_column"] for m in previous_version.column_mappings]
+        new_columns = [m["legacy_column"] for m in resolved.version.column_mappings]
+        column_diff = compute_column_diff(previous_columns, new_columns)
+
     engine = build_engine(resolved.connection)
     with engine.connect() as conn:
         conn.execute(text(resolved.version.generated_sql))
@@ -182,7 +207,7 @@ def deploy_view(
         completed_at=datetime.now(UTC),
         outcome="completed",
         sample_rows=[],
-        column_diff=None,
+        column_diff=column_diff,
         production_confirmed=bool(touches_production and confirm_production),
     )
     db.add(log)

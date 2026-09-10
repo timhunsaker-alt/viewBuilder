@@ -101,6 +101,30 @@ def validate_column_mappings(legacy_columns: list[str], column_mappings: list[di
         )
 
 
+def compute_column_diff(previous_columns: list[str], new_columns: list[str]) -> dict:
+    """US2 AC3 / T034: given the ordered column list a previously-live deployed version
+    produced and the ordered column list the version about to be deployed produces,
+    report which columns were added, removed, or reordered relative to what's live —
+    surfaced on the deploy's `view_deployment_log.column_diff` (data-model.md
+    §view_deployment_log) rather than silently deploying over a shape change.
+
+    `reordered` reports the columns common to both sides, in their new relative order,
+    whenever that relative order differs from before; it is an empty list when nothing
+    moved (including the common case where the two column lists are identical).
+    """
+    previous_set = set(previous_columns)
+    new_set = set(new_columns)
+
+    added = [c for c in new_columns if c not in previous_set]
+    removed = [c for c in previous_columns if c not in new_set]
+
+    common_previous_order = [c for c in previous_columns if c in new_set]
+    common_new_order = [c for c in new_columns if c in previous_set]
+    reordered = common_new_order if common_previous_order != common_new_order else []
+
+    return {"added": added, "removed": removed, "reordered": reordered}
+
+
 def _referenced_tables(join_graph: list[dict], column_mappings: list[dict]) -> set[str]:
     tables: set[str] = set()
     for edge in join_graph:

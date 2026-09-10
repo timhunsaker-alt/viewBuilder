@@ -7,6 +7,7 @@ import {
   type ColumnMappingEntry,
   type JoinGraphEdge,
   type LegacyShapeCapture,
+  type ViewDeploymentLogEntry,
   api,
 } from "../services/api";
 
@@ -78,6 +79,21 @@ export function ViewDefinitionEditor() {
     queryKey: ["legacy-shapes"],
     queryFn: () => api.get<LegacyShapeCapture[]>("/legacy-shapes"),
   });
+
+  // US2 (T035): version history shows each version's exact generated SQL, and any
+  // deploy log entry carrying a column_diff (US2 AC3 — a redeploy that changed the
+  // column list/order relative to what was previously live) is surfaced alongside the
+  // version that produced it, rather than only being visible via the raw API.
+  const deploymentsQuery = useQuery({
+    queryKey: ["view-definition-deployments", viewDefinitionId],
+    queryFn: () =>
+      api.get<ViewDeploymentLogEntry[]>(
+        `/view-definitions/${viewDefinitionId}/deployments?mode=deploy`,
+      ),
+    enabled: Boolean(viewDefinitionId),
+  });
+
+  const [expandedVersionId, setExpandedVersionId] = useState<string | null>(null);
 
   const connectionsQuery = useQuery({
     queryKey: ["connections"],
@@ -347,13 +363,56 @@ export function ViewDefinitionEditor() {
         <section>
           <h2>Version history</h2>
           <ul>
-            {versionsQuery.data?.map((version) => (
-              <li key={version.id}>v{version.version_number}</li>
-            ))}
+            {versionsQuery.data?.map((version) => {
+              const deployment = deploymentsQuery.data?.find(
+                (d) => d.view_definition_version_id === version.id,
+              );
+              const diff = deployment?.column_diff;
+              const hasDiff = Boolean(
+                diff &&
+                  (diff.added.length > 0 || diff.removed.length > 0 || diff.reordered.length > 0),
+              );
+              const isExpanded = expandedVersionId === version.id;
+              return (
+                <li key={version.id}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedVersionId(isExpanded ? null : version.id)}
+                  >
+                    v{version.version_number}
+                    {version.id === definitionQuery.data?.current_version_id ? " (current)" : ""}
+                  </button>
+                  {deployment && (
+                    <span>
+                      {" "}
+                      — deployed, column shape{" "}
+                      {hasDiff ? "changed relative to the prior deploy" : "unchanged"}
+                    </span>
+                  )}
+                  {hasDiff && diff && (
+                    <ul aria-label={`column diff for v${version.version_number}`}>
+                      {diff.added.length > 0 && <li>added: {diff.added.join(", ")}</li>}
+                      {diff.removed.length > 0 && <li>removed: {diff.removed.join(", ")}</li>}
+                      {diff.reordered.length > 0 && <li>reordered: {diff.reordered.join(", ")}</li>}
+                    </ul>
+                  )}
+                  {isExpanded && (
+                    <pre aria-label={`generated SQL for v${version.version_number}`}>
+                      {version.generated_sql}
+                    </pre>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {currentVersion && (
             <Link to={`/view-definitions/${viewDefinitionId}/preview`}>
               Preview &amp; deploy current version →
+            </Link>
+          )}
+          {definitionQuery.data && (
+            <Link to={`/view-definitions/${viewDefinitionId}/reconcile`}>
+              Reconcile against the old table →
             </Link>
           )}
         </section>

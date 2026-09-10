@@ -180,25 +180,25 @@ that a column-shape-changing redeploy is flagged in its `column_diff`.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T030 [P] [US2] Unit test: view-definition-version immutability (editing creates a
+- [X] T030 [P] [US2] Unit test: view-definition-version immutability (editing creates a
       new version, never mutates an existing one) in
       `backend/tests/unit/test_view_versioning.py`
-- [ ] T031 [P] [US2] Contract test: version history (`GET /view-definitions/{id}/versions`)
+- [X] T031 [P] [US2] Contract test: version history (`GET /view-definitions/{id}/versions`)
       returns each version's exact `generated_sql` in
       `backend/tests/contract/test_view_definitions_crud.py`
-- [ ] T032 [P] [US2] Unit test: `column_diff` computation correctly identifies added/
+- [X] T032 [P] [US2] Unit test: `column_diff` computation correctly identifies added/
       removed/reordered columns between two versions' generated shapes in
       `backend/tests/unit/test_column_diff.py`
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] Extend `view_definition_service` to save an edit as a new version without
+- [X] T033 [US2] Extend `view_definition_service` to save an edit as a new version without
       mutating prior versions (depends on T022)
-- [ ] T034 [US2] Implement `column_diff` computation in
+- [X] T034 [US2] Implement `column_diff` computation in
       `backend/src/services/view_definition_service.py`, invoked by
       `POST /view-definitions/{id}/deploy` when a prior version was already live (US2 AC3;
       depends on T026, T032)
-- [ ] T035 [P] [US2] Surface version history + `column_diff` highlighting in
+- [X] T035 [P] [US2] Surface version history + `column_diff` highlighting in
       `ViewDefinitionEditor.tsx` (depends on T028, T034)
 
 **Checkpoint**: User Stories 1 AND 2 both work independently.
