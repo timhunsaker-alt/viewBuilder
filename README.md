@@ -100,7 +100,10 @@ METADATA_DATABASE_URL="sqlite:///./viewbuilder.db" uvicorn src.api.main:app --re
 ```
 
 (or put `METADATA_DATABASE_URL=sqlite:///./viewbuilder.db` in `backend/.env` instead of
-passing it inline). Skip `alembic upgrade head` entirely for this path — a `sqlite:///` URL
+passing it inline). If only an older ODBC driver is installed, also set
+`MSSQL_ODBC_DRIVER="ODBC Driver 17 for SQL Server"` (defaults to Driver 18) — this is
+separate from `METADATA_DATABASE_URL`, which is only ever Postgres/SQLite and never touches
+this setting. Skip `alembic upgrade head` entirely for this path — a `sqlite:///` URL
 makes the app create its own schema from the models directly on startup (there's no prior
 data to migrate for a fresh local file), so nothing else about running it differs from the
 Postgres path. This is exactly the same metadata store *shape* — connections, mappings, view

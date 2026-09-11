@@ -17,6 +17,7 @@ from sqlalchemy.engine import Engine, Inspector
 from sqlalchemy.inspection import inspect
 
 from src.models.connection_config import ConnectionConfig
+from src.settings import settings
 
 
 class ConnectionUnreachableError(Exception):
@@ -52,7 +53,7 @@ def resolve_credential(credential_ref: str) -> str:
 
 def build_engine(config: ConnectionConfig) -> Engine:
     base = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
+        f"DRIVER={{{settings.mssql_odbc_driver}}};"
         f"SERVER={config.host},{config.port};"
         f"DATABASE={config.database};"
         "TrustServerCertificate=yes;"
