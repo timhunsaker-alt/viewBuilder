@@ -52,6 +52,7 @@ services:
     image: registry.vegadigital.dev/viewbuilder-backend:test8
     environment:
       METADATA_DATABASE_URL: "postgresql+psycopg://viewbuilder:viewbuilder_dev@postgres:5432/viewbuilder_metadata"
+      MSSQL_ODBC_DRIVER: "ODBC Driver 18 for SQL Server"
       SEED_MSSQL_HOST: "mssql"
       SEED_MSSQL_SA_PASSWORD: "ViewBuilder_Test123!"
       VIEWBUILDER_CRED_SA: "ViewBuilder_Test123!"

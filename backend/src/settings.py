@@ -11,10 +11,12 @@ class Settings(BaseSettings):
     )
     dry_run_sample_size: int = 20
     # The installed Microsoft ODBC driver name for reaching SQL Server sources/targets
-    # (distinct from metadata_database_url, which is only ever Postgres/SQLite). Override
-    # via MSSQL_ODBC_DRIVER when only an older driver is installed, e.g.
-    # "ODBC Driver 17 for SQL Server".
-    mssql_odbc_driver: str = "ODBC Driver 18 for SQL Server"
+    # (distinct from metadata_database_url, which is only ever Postgres/SQLite). Defaults
+    # to 17 since that's what a plain local machine is more likely to already have (a
+    # locked-down work machine especially); the Docker image installs 18, so
+    # deploy/stack.yml overrides MSSQL_ODBC_DRIVER back to 18 explicitly for that
+    # deployment rather than relying on this default.
+    mssql_odbc_driver: str = "ODBC Driver 17 for SQL Server"
 
 
 settings = Settings()
