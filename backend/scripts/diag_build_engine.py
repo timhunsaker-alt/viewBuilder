@@ -1,11 +1,17 @@
 """Diagnostic: build a connection exactly the way the app does and try to connect.
 Edit HOST/DATABASE below, then run:  python scripts\\diag_build_engine.py
+(works from any working directory — the sys.path line below locates `src` relative
+to this file, since Python only auto-adds the script's own folder, not backend/).
 """
 
+import sys
 import uuid
+from pathlib import Path
 
-from src.connectors.mssql import build_engine
-from src.models.connection_config import ConnectionConfig
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from src.connectors.mssql import build_engine  # noqa: E402
+from src.models.connection_config import ConnectionConfig  # noqa: E402
 
 HOST = "YOUR_SERVER_HOST"
 DATABASE = "YOUR_DATABASE"
