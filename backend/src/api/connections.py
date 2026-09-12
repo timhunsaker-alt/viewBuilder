@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, Query
@@ -15,6 +16,7 @@ from src.models.connection_config import (
 )
 from src.services.connection_service import ConnectionService, ConnectionValidationError
 
+logger = logging.getLogger("viewbuilder")
 router = APIRouter(prefix="/connections", tags=["connections"])
 
 
@@ -117,6 +119,15 @@ def get_schema(
         tables = list_tables(connection)
         return SchemaOut(tables=tables)
     except ConnectionUnreachableError as exc:
+        logger.warning(
+            "connection_unreachable connection_id=%s connection_name=%s cause=%r",
+            connection_id,
+            connection.name,
+            exc.cause,
+        )
         raise ApiError(
-            "connection_unreachable", f"could not reach connection '{connection.name}'", 503
+            "connection_unreachable",
+            f"could not reach connection '{connection.name}'",
+            503,
+            details={"cause": str(exc.cause) if exc.cause else None},
         ) from exc
