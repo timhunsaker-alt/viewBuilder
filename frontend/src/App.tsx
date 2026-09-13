@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { DryRunResults } from "./pages/DryRunResults";
 import { EnumTranslationEditor } from "./pages/EnumTranslationEditor";
+import { LegacyShapeCapture } from "./pages/LegacyShapeCapture";
 import { MappingEditor } from "./pages/MappingEditor";
 import { ReconciliationResults } from "./pages/ReconciliationResults";
 import { RetirementConfig } from "./pages/RetirementConfig";
@@ -22,6 +23,7 @@ export function App() {
       <Route path="/enum-translations" element={<EnumTranslationEditor />} />
       <Route path="/retirement/new" element={<RetirementConfig />} />
       <Route path="/runs" element={<RunHistory />} />
+      <Route path="/legacy-shapes/new" element={<LegacyShapeCapture />} />
       <Route path="/view-definitions/new" element={<ViewDefinitionEditor />} />
       <Route path="/view-definitions/:viewDefinitionId" element={<ViewDefinitionEditor />} />
       <Route path="/view-definitions/:viewDefinitionId/preview" element={<ViewPreviewResults />} />

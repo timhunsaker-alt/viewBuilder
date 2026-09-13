@@ -130,14 +130,15 @@ retirement mapping — in [`quickstart.md`](specs/001-sql-view-builder/quickstar
 
 ## 5. Try the legacy-compat-view golden path (002)
 
-Same backend/frontend, a second flow: capture an old wide table's shape, build a join graph +
-column mapping over its normalized replacement tables, preview and deploy a compatibility
-view, reconcile it against the still-live old table, and fall back to a legacy XML document
-lookup for anything reconciliation flags as missing. As with `connection_config` above, there
-is no creation UI yet for a `legacy_shape_capture` or a top-level `xml_field_mapping` — both go
-through the API directly (`POST /legacy-shapes`, `POST /xml-field-mappings`); everything else
-(the join-graph canvas, column mapping, preview/deploy, reconciliation, and adding XML
-`field_paths` entries) is driven from the UI. Full walkthrough:
+Same backend/frontend, a second flow: capture an old wide table's shape
+(`/legacy-shapes/new`), build a join graph + column mapping over its normalized
+replacement tables (`/view-definitions/new`), preview and deploy a compatibility view,
+reconcile it against the still-live old table, and fall back to a legacy XML document
+lookup for anything reconciliation flags as missing. There is no creation UI yet for a
+top-level `xml_field_mapping` — that one still goes through the API directly
+(`POST /xml-field-mappings`); everything else (capturing a legacy shape, the join-graph
+canvas, column mapping, preview/deploy, reconciliation, and adding XML `field_paths`
+entries) is driven from the UI. Full walkthrough:
 [`specs/002-legacy-compat-view/quickstart.md`](specs/002-legacy-compat-view/quickstart.md#golden-path).
 
 ## Tests

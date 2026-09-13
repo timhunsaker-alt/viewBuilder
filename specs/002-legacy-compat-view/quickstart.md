@@ -20,8 +20,9 @@ The docker-compose MS SQL Server fixture gains, alongside 001's sample tables:
 
 ## Golden path
 
-1. `POST /legacy-shapes` pointed at `dbo.legacy_loan_application` — captures its column
-   list/order.
+1. Open the frontend's `/legacy-shapes/new` page, pick the connection, select
+   `dbo.legacy_loan_application` from the table dropdown, and click **Capture shape** —
+   captures its column list/order.
 2. Open the frontend's view-definition editor; the join-graph canvas shows the 5
    normalized tables. Draw join edges between them (e.g.
    `loan_application.application_id = loan_applicant.application_id`, etc.) until every
@@ -38,9 +39,9 @@ The docker-compose MS SQL Server fixture gains, alongside 001's sample tables:
    flagged.
 7. For a flagged column, open the XML lookup panel. There is currently no frontend form
    for creating the top-level `xml_field_mapping` itself (which XML table/identity/
-   payload columns to use) — like `POST /legacy-shapes` in step 1, create it once via
-   `POST /xml-field-mappings` pointed at `dbo.legacy_application_xml` before opening the
-   panel. Select that mapping, configure a `field_paths` entry (XPath into the sample XML
+   payload columns to use) — create it once via `POST /xml-field-mappings` pointed at
+   `dbo.legacy_application_xml` before opening the panel. Select that mapping, configure
+   a `field_paths` entry (XPath into the sample XML
    documents) for the flagged column, and run the lookup — confirm it distinguishes
    `found` (value returned), `field_missing` (document exists, field absent), and
    `document_not_found`. `application_id` 5's sample document deliberately omits

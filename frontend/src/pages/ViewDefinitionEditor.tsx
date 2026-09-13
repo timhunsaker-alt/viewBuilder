@@ -1,6 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { JoinGraphCanvas, type JoinGraphTable } from "../components/canvas/JoinGraphCanvas";
 import {
   ApiError,
@@ -54,10 +54,13 @@ interface ViewDefinitionVersion {
 export function ViewDefinitionEditor() {
   const { viewDefinitionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
+  const navigationState = location.state as { legacyShapeCaptureId?: string } | null;
+
   const [name, setName] = useState("");
-  const [legacyShapeId, setLegacyShapeId] = useState("");
+  const [legacyShapeId, setLegacyShapeId] = useState(navigationState?.legacyShapeCaptureId ?? "");
   const [targetConnectionId, setTargetConnectionId] = useState("");
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [joinGraph, setJoinGraph] = useState<JoinGraphEdge[]>([]);
@@ -282,8 +285,7 @@ export function ViewDefinitionEditor() {
             </select>
             {legacyShapesQuery.data?.length === 0 && (
               <p>
-                No legacy shape yet? Capture one on the <Link to="/">table picker</Link>, then use{" "}
-                <code>POST /legacy-shapes</code>.
+                No legacy shape yet? <Link to="/legacy-shapes/new">Capture one →</Link>
               </p>
             )}
           </section>

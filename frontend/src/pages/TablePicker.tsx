@@ -51,6 +51,8 @@ export function TablePicker() {
       <p>
         <Link to="/setup">Set up a connection →</Link>
         {" · "}
+        <Link to="/legacy-shapes/new">Capture an old table's shape →</Link>
+        {" · "}
         <Link to="/view-definitions/new">Build a legacy-shape compatibility view →</Link>
       </p>
       <section>
