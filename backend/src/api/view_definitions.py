@@ -50,6 +50,12 @@ class ColumnMappingEntry(BaseModel):
     # since Pydantic alone can't see column_status when validating this field.
     source_column_or_expression: str = ""
     column_status: ColumnStatus = "Mapped"
+    # When set, this column is enum-coded: the deployed view wraps its source value in
+    # a CASE translating each of this enum_translation_version's entries (ddl_generator
+    # module docstring) instead of reading the raw code straight through. Existence is
+    # checked in view_definition_service.validate_enum_references, not here — same
+    # reasoning as column_status/source_column_or_expression above.
+    enum_translation_version_id: uuid.UUID | None = None
     notes: str | None = None
 
 
@@ -160,7 +166,7 @@ def create_view_definition(body: ViewDefinitionCreate, db: Session = Depends(get
             legacy_shape_capture_id=body.legacy_shape_capture_id,
             target_connection_id=body.target_connection_id,
             join_graph=[edge.model_dump() for edge in body.join_graph],
-            column_mappings=[m.model_dump() for m in body.column_mappings],
+            column_mappings=[m.model_dump(mode="json") for m in body.column_mappings],
         )
     except ViewDefinitionValidationError as exc:
         _raise_validation(exc)
@@ -206,7 +212,7 @@ def create_view_definition_version(
         version = ViewDefinitionService(db).save_new_version(
             view_definition_id=view_definition_id,
             join_graph=[edge.model_dump() for edge in body.join_graph],
-            column_mappings=[m.model_dump() for m in body.column_mappings],
+            column_mappings=[m.model_dump(mode="json") for m in body.column_mappings],
         )
     except ViewDefinitionValidationError as exc:
         _raise_validation(exc)

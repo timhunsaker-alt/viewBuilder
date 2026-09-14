@@ -26,7 +26,7 @@ from src.models.legacy_shape import LegacyShapeCapture
 from src.models.view_definition import ViewDefinition, ViewDefinitionVersion
 from src.services.ddl_generator import build_select_sql
 from src.services.legacy_shape_service import LegacyShapeService
-from src.services.view_definition_service import compute_column_diff
+from src.services.view_definition_service import compute_column_diff, resolve_enum_entries
 
 SAMPLE_ROW_CAP = 5
 
@@ -112,10 +112,12 @@ def preview_view(
         view_definition_id=view_definition_id,
         view_definition_version_id=view_definition_version_id,
     )
+    enum_entries_by_version = resolve_enum_entries(db, resolved.version.column_mappings)
     select_sql = build_select_sql(
         legacy_columns=resolved.legacy_shape.columns,
         join_graph=resolved.version.join_graph,
         column_mappings=resolved.version.column_mappings,
+        enum_entries_by_version=enum_entries_by_version,
     )
     preview_sql = f"SELECT TOP {SAMPLE_ROW_CAP} * FROM (\n{select_sql}\n) AS preview_query"
 

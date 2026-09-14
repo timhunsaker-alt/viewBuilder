@@ -274,6 +274,113 @@ def test_missing_mapping_for_a_legacy_column_raises():
         )
 
 
+def test_enum_coded_column_wraps_source_in_a_translation_case():
+    legacy_columns = [
+        _legacy_col("application_id", "INTEGER"),
+        _legacy_col("status", "NVARCHAR(50)"),
+    ]
+    column_mappings = [
+        {
+            "legacy_column": "application_id",
+            "source_table": "dbo.loan_application",
+            "source_column_or_expression": "application_id",
+        },
+        {
+            "legacy_column": "status",
+            "source_table": "dbo.loan_application",
+            "source_column_or_expression": "status_code",
+            "enum_translation_version_id": "11111111-1111-1111-1111-111111111111",
+        },
+    ]
+    enum_entries_by_version = {
+        "11111111-1111-1111-1111-111111111111": [
+            {"code": "1", "translated_value": "Funded"},
+            {"code": "2", "translated_value": "Closed"},
+        ]
+    }
+
+    sql = build_select_sql(
+        legacy_columns=legacy_columns,
+        join_graph=[],
+        column_mappings=column_mappings,
+        enum_entries_by_version=enum_entries_by_version,
+    )
+
+    assert (
+        "CAST(CASE CAST(loan_application.status_code AS NVARCHAR(4000)) "
+        "WHEN N'1' THEN N'Funded' WHEN N'2' THEN N'Closed' ELSE NULL END "
+        "AS NVARCHAR(50)) AS [status]"
+    ) in sql
+
+
+def test_enum_coded_column_with_no_matching_version_entries_falls_back_to_null():
+    legacy_columns = [_legacy_col("status", "NVARCHAR(50)")]
+    column_mappings = [
+        {
+            "legacy_column": "status",
+            "source_table": "dbo.loan_application",
+            "source_column_or_expression": "status_code",
+            "enum_translation_version_id": "does-not-exist",
+        }
+    ]
+    sql = build_select_sql(
+        legacy_columns=legacy_columns,
+        join_graph=[],
+        column_mappings=column_mappings,
+        enum_entries_by_version={},
+    )
+    assert "CAST(NULL AS NVARCHAR(50)) AS [status]" in sql
+    assert "CASE" not in sql
+
+
+def test_enum_translation_entries_escape_embedded_single_quotes():
+    legacy_columns = [_legacy_col("status", "NVARCHAR(50)")]
+    column_mappings = [
+        {
+            "legacy_column": "status",
+            "source_table": "dbo.loan_application",
+            "source_column_or_expression": "status_code",
+            "enum_translation_version_id": "v1",
+        }
+    ]
+    sql = build_select_sql(
+        legacy_columns=legacy_columns,
+        join_graph=[],
+        column_mappings=column_mappings,
+        enum_entries_by_version={"v1": [{"code": "1", "translated_value": "Investor's Choice"}]},
+    )
+    assert "N'Investor''s Choice'" in sql
+
+
+def test_retired_column_ignores_enum_translation_version_id_too():
+    legacy_columns = [
+        _legacy_col("application_id", "INTEGER"),
+        _legacy_col("status", "NVARCHAR(50)"),
+    ]
+    column_mappings = [
+        {
+            "legacy_column": "application_id",
+            "source_table": "dbo.loan_application",
+            "source_column_or_expression": "application_id",
+        },
+        {
+            "legacy_column": "status",
+            "column_status": "Retired",
+            "source_table": "dbo.loan_application",
+            "source_column_or_expression": "status_code",
+            "enum_translation_version_id": "v1",
+        },
+    ]
+    sql = build_select_sql(
+        legacy_columns=legacy_columns,
+        join_graph=[],
+        column_mappings=column_mappings,
+        enum_entries_by_version={"v1": [{"code": "1", "translated_value": "Funded"}]},
+    )
+    assert "CAST(NULL AS NVARCHAR(50)) AS [status]" in sql
+    assert "CASE" not in sql
+
+
 def test_unreachable_table_raises():
     legacy_columns = [_legacy_col("a", "INTEGER"), _legacy_col("b", "INTEGER")]
     column_mappings = [

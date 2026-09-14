@@ -19,6 +19,12 @@ interface Connection {
   environment: "dev" | "test" | "prod";
 }
 
+interface EnumTranslationTable {
+  id: string;
+  name: string;
+  current_version_id: string | null;
+}
+
 interface SchemaColumn {
   name: string;
   type: string;
@@ -83,6 +89,11 @@ export function ViewDefinitionEditor() {
   const legacyShapesQuery = useQuery({
     queryKey: ["legacy-shapes"],
     queryFn: () => api.get<LegacyShapeCapture[]>("/legacy-shapes"),
+  });
+
+  const enumTranslationsQuery = useQuery({
+    queryKey: ["enum-translations"],
+    queryFn: () => api.get<EnumTranslationTable[]>("/enum-translations"),
   });
 
   // US2 (T035): version history shows each version's exact generated SQL, and any
@@ -160,57 +171,49 @@ export function ViewDefinitionEditor() {
     );
   }
 
-  function setMapping(legacyColumn: string, sourceTable: string, sourceColumn: string) {
+  function _emptyMapping(legacyColumn: string): ColumnMappingEntry {
+    return {
+      legacy_column: legacyColumn,
+      source_table: null,
+      source_column_or_expression: "",
+      column_status: "Mapped",
+      enum_translation_version_id: null,
+      notes: null,
+    };
+  }
+
+  function updateMapping(legacyColumn: string, patch: Partial<ColumnMappingEntry>) {
     setColumnMappings((current) => ({
       ...current,
       [legacyColumn]: {
-        legacy_column: legacyColumn,
-        source_table: sourceTable || null,
-        source_column_or_expression: sourceColumn,
-        column_status: current[legacyColumn]?.column_status ?? "Mapped",
-        notes: current[legacyColumn]?.notes ?? null,
+        ...(current[legacyColumn] ?? _emptyMapping(legacyColumn)),
+        ...patch,
       },
     }));
+  }
+
+  function setMapping(legacyColumn: string, sourceTable: string, sourceColumn: string) {
+    updateMapping(legacyColumn, {
+      source_table: sourceTable || null,
+      source_column_or_expression: sourceColumn,
+    });
   }
 
   function setColumnStatus(legacyColumn: string, status: ColumnStatus) {
-    setColumnMappings((current) => ({
-      ...current,
-      [legacyColumn]: {
-        legacy_column: legacyColumn,
-        source_table: current[legacyColumn]?.source_table ?? null,
-        source_column_or_expression: current[legacyColumn]?.source_column_or_expression ?? "",
-        column_status: status,
-        notes: current[legacyColumn]?.notes ?? null,
-      },
-    }));
+    updateMapping(legacyColumn, { column_status: status });
+  }
+
+  function setEnumTranslationVersionId(legacyColumn: string, versionId: string) {
+    updateMapping(legacyColumn, { enum_translation_version_id: versionId || null });
   }
 
   function setNotes(legacyColumn: string, notes: string) {
-    setColumnMappings((current) => ({
-      ...current,
-      [legacyColumn]: {
-        legacy_column: legacyColumn,
-        source_table: current[legacyColumn]?.source_table ?? null,
-        source_column_or_expression: current[legacyColumn]?.source_column_or_expression ?? "",
-        column_status: current[legacyColumn]?.column_status ?? "Mapped",
-        notes: notes || null,
-      },
-    }));
+    updateMapping(legacyColumn, { notes: notes || null });
   }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const mappings = legacyColumns.map(
-        (col) =>
-          columnMappings[col] ?? {
-            legacy_column: col,
-            source_table: null,
-            source_column_or_expression: "",
-            column_status: "Mapped" as ColumnStatus,
-            notes: null,
-          },
-      );
+      const mappings = legacyColumns.map((col) => columnMappings[col] ?? _emptyMapping(col));
       if (viewDefinitionId) {
         return api.post<ViewDefinitionVersion>(`/view-definitions/${viewDefinitionId}/versions`, {
           join_graph: joinGraph,
@@ -353,7 +356,10 @@ export function ViewDefinitionEditor() {
             a source at all, and it doesn't need a source table/column configured.{" "}
             <strong>Transient</strong>/<strong>Historical</strong> still read a real source like{" "}
             <strong>Mapped</strong>; the status is a governance label recorded in{" "}
-            <code>legacy_view_column_rule</code>, not a change in how the column is read.
+            <code>legacy_view_column_rule</code>, not a change in how the column is read. For a
+            column whose source value is an enum code, attach a translation table so the view
+            outputs the human-readable value instead of the raw code — the deployed SQL wraps the
+            source in a <code>CASE</code> using that translation table's current entries.
           </p>
           <table>
             <thead>
@@ -362,6 +368,7 @@ export function ViewDefinitionEditor() {
                 <th>Status</th>
                 <th>Source table</th>
                 <th>Source column / expression</th>
+                <th>Enum translation</th>
                 <th>Notes</th>
               </tr>
             </thead>
@@ -435,6 +442,28 @@ export function ViewDefinitionEditor() {
                           value={mapping?.source_column_or_expression ?? ""}
                           onChange={(event) => setMapping(legacyColumn, "", event.target.value)}
                         />
+                      )}
+                    </td>
+                    <td>
+                      {isRetired ? (
+                        <em>—</em>
+                      ) : (
+                        <select
+                          aria-label={`Enum translation for ${legacyColumn}`}
+                          value={mapping?.enum_translation_version_id ?? ""}
+                          onChange={(event) =>
+                            setEnumTranslationVersionId(legacyColumn, event.target.value)
+                          }
+                        >
+                          <option value="">None</option>
+                          {enumTranslationsQuery.data
+                            ?.filter((t) => t.current_version_id)
+                            .map((t) => (
+                              <option key={t.id} value={t.current_version_id ?? ""}>
+                                {t.name}
+                              </option>
+                            ))}
+                        </select>
                       )}
                     </td>
                     <td>

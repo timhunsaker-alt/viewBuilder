@@ -11,6 +11,7 @@ import uuid
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from src.models.enum_translation import EnumTranslationVersion
 from src.models.legacy_shape import LegacyShapeCapture
 from src.models.legacy_view_column_rule import VALID_COLUMN_STATUSES, LegacyViewColumnRule
 from src.models.view_definition import ViewDefinition, ViewDefinitionVersion
@@ -163,6 +164,46 @@ def _referenced_tables(join_graph: list[dict], column_mappings: list[dict]) -> s
     return tables
 
 
+def validate_enum_references(db: Session, column_mappings: list[dict]) -> None:
+    """Every `enum_translation_version_id` a column mapping references must actually
+    exist — mirrors 001-sql-view-builder's `mapping_service._validate_column_links`
+    (FR-005's "a translation table must be attached before it can be used" applied to
+    this feature's column mappings)."""
+    for mapping in column_mappings:
+        version_id = mapping.get("enum_translation_version_id")
+        if version_id is None:
+            continue
+        version = db.get(EnumTranslationVersion, uuid.UUID(str(version_id)))
+        if version is None:
+            raise ViewDefinitionValidationError(
+                "mapping_invalid",
+                f"column '{mapping.get('legacy_column')}' references enum translation "
+                f"version {version_id}, which does not exist",
+            )
+
+
+def resolve_enum_entries(db: Session, column_mappings: list[dict]) -> dict[str, list[dict]]:
+    """Preloads `{str(version_id): entries}` for every `enum_translation_version_id`
+    referenced across `column_mappings`, for `ddl_generator` to bake into the
+    generated SQL's `CASE` expressions (ddl_generator.py module docstring) — mirrors
+    `mapping_engine.load_translation_entries` from 001-sql-view-builder, but resolved
+    once at SQL-generation time (preview or save) rather than per source row, since
+    the translation here becomes part of the deployed view's static SQL text rather
+    than being applied at row-copy runtime.
+    """
+    version_ids = {
+        mapping["enum_translation_version_id"]
+        for mapping in column_mappings
+        if mapping.get("enum_translation_version_id")
+    }
+    entries_by_version: dict[str, list[dict]] = {}
+    for version_id in version_ids:
+        version = db.get(EnumTranslationVersion, uuid.UUID(str(version_id)))
+        if version is not None:
+            entries_by_version[str(version_id)] = version.entries
+    return entries_by_version
+
+
 class ViewDefinitionService:
     """Create/version compatibility view definitions. Every save creates a new,
     immutable `view_definition_version` row — an existing version is never mutated
@@ -190,15 +231,18 @@ class ViewDefinitionService:
 
         legacy_column_names = [c["name"] for c in legacy_shape.columns]
         validate_column_mappings(legacy_column_names, column_mappings)
+        validate_enum_references(self.db, column_mappings)
         tables = _referenced_tables(join_graph, column_mappings)
         validate_join_graph(tables, join_graph)
 
+        enum_entries_by_version = resolve_enum_entries(self.db, column_mappings)
         try:
             return build_create_view_sql(
                 view_name=name,
                 legacy_columns=legacy_shape.columns,
                 join_graph=join_graph,
                 column_mappings=column_mappings,
+                enum_entries_by_version=enum_entries_by_version,
             )
         except DdlGenerationError as exc:
             raise ViewDefinitionValidationError("mapping_invalid", str(exc)) from exc

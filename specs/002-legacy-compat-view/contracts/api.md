@@ -26,13 +26,19 @@ exposed directly here so a user can check drift without triggering one of those.
 Create a new `view_definition` + its first `view_definition_version`. Body: `{name,
 legacy_shape_capture_id, target_connection_id, join_graph, column_mappings}`, where each
 `column_mappings` entry is `{legacy_column, source_table?, source_column_or_expression?,
-column_status?, notes?}`. `column_status` is one of `Mapped` (default), `Retired`,
-`Transient`, `Historical` — a `Retired` column needs no `source_table`/
-`source_column_or_expression` at all (the view casts `NULL` for it instead); every other
-status still requires one. Rejects with `mapping_invalid` if `column_mappings` doesn't
-cover every legacy-shape column (FR-004), a non-`Retired` column has no source expression,
-an entry's `column_status` isn't one of the four values, or `join_graph` leaves a table
-unreachable (FR-002). Rejects with `name_collision` if `name` equals the legacy shape's own
+column_status?, enum_translation_version_id?, notes?}`. `column_status` is one of
+`Mapped` (default), `Retired`, `Transient`, `Historical` — a `Retired` column needs no
+`source_table`/`source_column_or_expression` at all (the view casts `NULL` for it
+instead); every other status still requires one. A non-`Retired` column may also set
+`enum_translation_version_id` (the same `enum_translation_version` entity
+001-sql-view-builder's mapping `column_links` attach to) to translate an enum-coded
+source value: the generated SQL wraps that column's source in a `CASE` over the
+referenced version's entries instead of reading the raw code through, with any
+untranslated code becoming `NULL`. Rejects with `mapping_invalid` if `column_mappings`
+doesn't cover every legacy-shape column (FR-004), a non-`Retired` column has no source
+expression, an entry's `column_status` isn't one of the four values, an
+`enum_translation_version_id` doesn't exist, or `join_graph` leaves a table unreachable
+(FR-002). Rejects with `name_collision` if `name` equals the legacy shape's own
 `table_name` (research.md §5).
 
 Every generated column — regardless of status — is wrapped in

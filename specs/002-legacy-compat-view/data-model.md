@@ -49,7 +49,7 @@ versions.
 | view_definition_id | FK → view_definition | |
 | version_number | int | Monotonically increasing per definition |
 | join_graph | JSON | List of `{left_table, left_column, right_table, right_column, join_type}` (research.md §4) |
-| column_mappings | JSON | List of `{legacy_column, source_table, source_column_or_expression, column_status, notes}` — one entry per column in the referenced legacy_shape_capture; validated complete (FR-004) |
+| column_mappings | JSON | List of `{legacy_column, source_table, source_column_or_expression, column_status, enum_translation_version_id?, notes}` — one entry per column in the referenced legacy_shape_capture; validated complete (FR-004) |
 | generated_sql | text | The exact `CREATE OR ALTER VIEW ...` statement this version produces — captured verbatim at preview time and re-validated identical at deploy time |
 | created_at | timestamp | Immutable once created |
 
@@ -62,11 +62,24 @@ output always matches the old table's declared type — a `Retired` column casts
 `NULL AS <type>` instead of reading any (possibly stale) configured source. `notes` is a
 free-text field carried through to `legacy_view_column_rule` below.
 
+`enum_translation_version_id`, when set on a non-`Retired` column, references an
+`enum_translation_version` (the same entity 001-sql-view-builder's `mapping_version`
+column_links attach to) — mirrors that feature's enum translation rather than
+introducing a second mechanism. The generated SQL wraps that column's source value in a
+`CASE` translating each of the referenced version's `entries` (`{code,
+translated_value}`) instead of reading the raw code straight through; a code with no
+matching entry becomes `NULL` rather than the untranslated raw code or a guess
+(Constitution Principle III — the same "flag via NULL" choice already used for
+`Retired` columns). Because `enum_translation_version` rows are immutable once created,
+the translation baked into a deployed view is fixed at the time this version was saved
+— picking up a newer set of entries requires an explicit new version and redeploy.
+
 **Validation rules**: `column_mappings` MUST cover every column in
 `legacy_shape_capture.columns`, in the same order (FR-004/FR-006). Every column whose
 `column_status` is not `Retired` MUST have a non-empty `source_column_or_expression` — a
-column with no live source must be marked `Retired` rather than left unsourced. `join_graph`
-MUST leave no table unreachable from the others (FR-002). A version, once referenced by any
+column with no live source must be marked `Retired` rather than left unsourced. Any
+`enum_translation_version_id` referenced MUST exist. `join_graph` MUST leave no table
+unreachable from the others (FR-002). A version, once referenced by any
 `view_deployment_log` entry, is immutable — no update endpoint may modify `join_graph`,
 `column_mappings`, or `generated_sql` on an existing version row.
 

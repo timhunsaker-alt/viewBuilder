@@ -7,11 +7,12 @@ Join graph shape (research.md §4): a list of
 `{left_table, left_column, right_table, right_column, join_type}` edges, where
 `join_type` is `"inner"` or `"left"`. Column mapping shape (data-model.md
 §view_definition_version): a list of
-`{legacy_column, source_table, source_column_or_expression, column_status?, notes?}`
-entries, one per legacy column. When `source_table` is set, `source_column_or_expression`
-is treated as a bare column name on that table and is qualified with the table's alias.
-When `source_table` is `None`, `source_column_or_expression` is used verbatim as a raw
-SQL expression (e.g. a multi-table expression the caller has already qualified itself).
+`{legacy_column, source_table, source_column_or_expression, column_status?,
+enum_translation_version_id?, notes?}` entries, one per legacy column. When
+`source_table` is set, `source_column_or_expression` is treated as a bare column name on
+that table and is qualified with the table's alias. When `source_table` is `None`,
+`source_column_or_expression` is used verbatim as a raw SQL expression (e.g. a
+multi-table expression the caller has already qualified itself).
 
 Every column, regardless of status, is wrapped in `CAST(... AS <legacy column's own
 type>)` so the view's output always matches the old table's declared type — even when
@@ -20,6 +21,20 @@ and therefore always safe to apply unconditionally. A column whose `column_statu
 `"Retired"` ignores whatever source is configured and instead emits
 `CAST(NULL AS <type>)`, so the view keeps its promised shape/types for a column the new
 schema no longer sources, without fabricating data.
+
+A non-Retired column carrying `enum_translation_version_id` is enum-coded: its raw
+source value is wrapped in `CASE CAST(<source> AS NVARCHAR(4000)) WHEN <code> THEN
+<translated_value> ... ELSE NULL END` before the outer type CAST, using that
+translation version's `entries` (resolved by the caller via
+`view_definition_service.resolve_enum_entries` and passed in as
+`enum_entries_by_version`, keyed by `str(version_id)` — this module stays DB-free, so it
+never resolves the version id itself). A source code with no matching entry becomes
+`NULL` rather than the raw untranslated code or a guess (Constitution Principle III) —
+the same "flag via NULL, never fabricate" choice already used for Retired columns;
+reconciliation then surfaces any row where that NULL doesn't match what the old table
+actually holds. Because `enum_translation_version` rows are immutable once created
+(data-model.md), the translation baked into a deployed view never silently drifts —
+picking up a newer set of entries always requires an explicit new version/redeploy.
 """
 
 from __future__ import annotations
@@ -49,6 +64,13 @@ def cast_type(sql_type: str) -> str:
     """A legacy column's introspected type string, cleaned down to a bare type
     specification usable inside `CAST(expr AS <this>)`."""
     return _COLLATE_CLAUSE.sub("", sql_type).strip()
+
+
+def _sql_string_literal(value: object) -> str:
+    """A T-SQL nvarchar string literal for `value`, with embedded single quotes
+    doubled per T-SQL escaping rules (values come from operator-entered enum
+    translation entries, not end-user input, but are escaped regardless)."""
+    return "N'" + str(value).replace("'", "''") + "'"
 
 
 def _alias_for(table: str) -> str:
@@ -101,7 +123,27 @@ def _build_join_order(
     return order, edge_used
 
 
-def _select_list(legacy_columns: list[dict], column_mappings: list[dict]) -> list[str]:
+def _enum_case_expr(expr: str, entries: list[dict]) -> str:
+    """Wraps `expr` in a `CASE` translating each entry's `code` to its
+    `translated_value`; a code with no matching entry becomes `NULL` (see module
+    docstring). Falls back to a bare `NULL` if `entries` is empty — a `CASE` with no
+    `WHEN` clause is not valid T-SQL, and an empty entries list means there is nothing
+    to translate to anyway."""
+    if not entries:
+        return "NULL"
+    when_clauses = " ".join(
+        f"WHEN {_sql_string_literal(entry['code'])} THEN "
+        f"{_sql_string_literal(entry['translated_value'])}"
+        for entry in entries
+    )
+    return f"CASE CAST({expr} AS NVARCHAR(4000)) {when_clauses} ELSE NULL END"
+
+
+def _select_list(
+    legacy_columns: list[dict],
+    column_mappings: list[dict],
+    enum_entries_by_version: dict[str, list[dict]],
+) -> list[str]:
     mapping_by_column = {m["legacy_column"]: m for m in column_mappings}
     select_items = []
     for legacy_col in legacy_columns:
@@ -127,13 +169,22 @@ def _select_list(legacy_columns: list[dict], column_mappings: list[dict]) -> lis
             if source_table:
                 expr = f"{_alias_for(source_table)}.{expr}"
 
+            enum_version_id = mapping.get("enum_translation_version_id")
+            if enum_version_id:
+                entries = enum_entries_by_version.get(str(enum_version_id), [])
+                expr = _enum_case_expr(expr, entries)
+
         target_type = cast_type(legacy_col["type"])
         select_items.append(f"CAST({expr} AS {target_type}) AS [{legacy_column}]")
     return select_items
 
 
 def build_select_sql(
-    *, legacy_columns: list[dict], join_graph: list[dict], column_mappings: list[dict]
+    *,
+    legacy_columns: list[dict],
+    join_graph: list[dict],
+    column_mappings: list[dict],
+    enum_entries_by_version: dict[str, list[dict]] | None = None,
 ) -> str:
     """The plain `SELECT ...` body (no `CREATE VIEW` wrapper) — used both to build the
     deployed view's definition and, wrapped in a capped `SELECT TOP` by the caller, for
@@ -142,7 +193,13 @@ def build_select_sql(
     `legacy_columns` is the legacy shape's captured column list — a list of
     `{name, type, nullable}` dicts (data-model.md §legacy_shape_capture) — `type` drives
     the CAST target for that column (see module docstring).
+
+    `enum_entries_by_version` is `{str(enum_translation_version_id): entries}` for every
+    version referenced by a `column_mappings` entry's `enum_translation_version_id`
+    (resolved by the caller — see `view_definition_service.resolve_enum_entries` — since
+    this module never opens a database connection itself).
     """
+    enum_entries_by_version = enum_entries_by_version or {}
     # An ordered (not just a set of) table list: insertion order follows the legacy
     # column order first, then the join graph — so the BFS root below is always the
     # first table a human would expect (the table backing the first legacy column),
@@ -172,7 +229,7 @@ def build_select_sql(
 
     order, edge_used = _build_join_order(set(tables), join_graph, root=next(iter(tables)))
 
-    select_items = _select_list(legacy_columns, column_mappings)
+    select_items = _select_list(legacy_columns, column_mappings, enum_entries_by_version)
 
     root = order[0]
     from_clause = [f"FROM {root} AS {_alias_for(root)}"]
@@ -209,10 +266,14 @@ def build_create_view_sql(
     legacy_columns: list[dict],
     join_graph: list[dict],
     column_mappings: list[dict],
+    enum_entries_by_version: dict[str, list[dict]] | None = None,
 ) -> str:
     """The exact `CREATE OR ALTER VIEW` statement stored verbatim as
     `view_definition_version.generated_sql` (FR-006/FR-008)."""
     select_sql = build_select_sql(
-        legacy_columns=legacy_columns, join_graph=join_graph, column_mappings=column_mappings
+        legacy_columns=legacy_columns,
+        join_graph=join_graph,
+        column_mappings=column_mappings,
+        enum_entries_by_version=enum_entries_by_version,
     )
     return f"CREATE OR ALTER VIEW {view_name} AS\n{select_sql};"

@@ -95,6 +95,10 @@ export interface ColumnMappingEntry {
   source_table: string | null;
   source_column_or_expression: string;
   column_status: ColumnStatus;
+  // When set, the deployed view wraps this column's source in a CASE translating
+  // each of this enum_translation_version's entries (see ddl_generator.py) instead
+  // of reading the raw code straight through.
+  enum_translation_version_id?: string | null;
   notes: string | null;
 }
 
