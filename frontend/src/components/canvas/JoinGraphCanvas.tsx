@@ -4,10 +4,12 @@ import {
   Controls,
   type Edge,
   Handle,
+  MiniMap,
   type Node,
   Position,
   ReactFlow,
   addEdge,
+  applyEdgeChanges,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
@@ -36,10 +38,13 @@ interface TableNodeData {
 function TableNode({ data }: { data: TableNodeData }) {
   return (
     <div className="join-graph-table-node">
-      <strong>{data.label}</strong>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+      <div className="join-graph-table-node__header">
+        <strong>{data.label}</strong>
+        <span>{data.columns.length} fields</span>
+      </div>
+      <ul className="join-graph-table-node__columns">
         {data.columns.map((column) => (
-          <li key={column} data-column={column} style={{ position: "relative" }}>
+          <li key={column} data-column={column}>
             <Handle
               type="target"
               position={Position.Left}
@@ -68,6 +73,38 @@ interface JoinGraphCanvasProps {
   onJoinGraphChange: (joinGraph: JoinGraphEdge[]) => void;
 }
 
+function estimateNodeHeight(table: JoinGraphTable): number {
+  return 58 + Math.max(table.columns.length, 1) * 27;
+}
+
+/** Places tables in readable pairs, with vertical space based on their field counts. */
+export function layoutJoinGraphNodes(tables: JoinGraphTable[]): Node[] {
+  let nextRowY = 0;
+  return tables.map((table, index) => {
+    const isLeftColumn = index % 2 === 0;
+    const previousTable = isLeftColumn ? undefined : tables[index - 1];
+    const position = {
+      x: isLeftColumn ? 0 : 390,
+      y: isLeftColumn ? nextRowY : nextRowY,
+    };
+
+    if (!isLeftColumn) {
+      nextRowY +=
+        Math.max(estimateNodeHeight(previousTable ?? table), estimateNodeHeight(table)) + 72;
+    }
+    if (isLeftColumn && index === tables.length - 1) {
+      nextRowY += estimateNodeHeight(table) + 72;
+    }
+
+    return {
+      id: `table:${table.name}`,
+      type: "joinTable",
+      position,
+      data: { label: table.name, columns: table.columns },
+    };
+  });
+}
+
 /**
  * Renders every selected new-schema table as a node with one row per column; a
  * user-drawn edge between two columns' handles becomes a join edge (FR-002). Removing
@@ -76,23 +113,28 @@ interface JoinGraphCanvasProps {
  * saved — this component only captures what the user drew.
  */
 export function JoinGraphCanvas({ tables, joinGraph, onJoinGraphChange }: JoinGraphCanvasProps) {
-  const initialNodes = useMemo<Node[]>(
-    () =>
-      tables.map((table, index) => ({
-        id: `table:${table.name}`,
-        type: "joinTable",
-        position: { x: (index % 3) * 260, y: Math.floor(index / 3) * 220 },
-        data: { label: table.name, columns: table.columns },
-      })),
-    [tables],
-  );
+  const initialNodes = useMemo<Node[]>(() => layoutJoinGraphNodes(tables), [tables]);
 
   const initialEdges = useMemo<Edge[]>(() => joinGraphToEdges(joinGraph), [joinGraph]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  useEffect(() => setNodes(initialNodes), [initialNodes, setNodes]);
+  // Table schema responses arrive independently. Preserve an operator's drag position
+  // while their column lists fill in, adding only genuinely new tables at a sensible spot.
+  useEffect(() => {
+    setNodes((current) => {
+      const positions = new Map(current.map((node) => [node.id, node.position]));
+      return initialNodes.map((node) => ({
+        ...node,
+        position: positions.get(node.id) ?? node.position,
+      }));
+    });
+  }, [initialNodes, setNodes]);
+
+  // A saved view supplies its joins after the editor loads its current version. Keep
+  // the canvas synchronized with that external value as well as with newly drawn edges.
+  useEffect(() => setEdges(initialEdges), [initialEdges, setEdges]);
 
   const emitJoinGraphFromEdges = useCallback(
     (nextEdges: Edge[]) => onJoinGraphChange(edgesToJoinGraph(nextEdges)),
@@ -112,20 +154,28 @@ export function JoinGraphCanvas({ tables, joinGraph, onJoinGraphChange }: JoinGr
 
   const handleEdgesChange: typeof onEdgesChange = useCallback(
     (changes) => {
-      onEdgesChange(changes);
-      const hasRemoval = changes.some((change) => change.type === "remove");
-      if (hasRemoval) {
-        setEdges((current) => {
-          emitJoinGraphFromEdges(current);
-          return current;
-        });
-      }
+      setEdges((current) => {
+        const next = applyEdgeChanges(changes, current);
+        if (changes.some((change) => change.type === "remove")) {
+          emitJoinGraphFromEdges(next);
+        }
+        return next;
+      });
     },
-    [onEdgesChange, setEdges, emitJoinGraphFromEdges],
+    [setEdges, emitJoinGraphFromEdges],
   );
 
   return (
-    <div style={{ height: 500, border: "1px solid #ccc" }}>
+    <div className="join-graph-workspace">
+      <div className="join-graph-workspace__toolbar">
+        <div>
+          <strong>Connect matching fields</strong>
+          <span>Drag tables to arrange them. Draw from a field on one table to its match.</span>
+        </div>
+        <span className="join-graph-workspace__summary">
+          {tables.length} tables · {joinGraph.length} joins
+        </span>
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -134,8 +184,13 @@ export function JoinGraphCanvas({ tables, joinGraph, onJoinGraphChange }: JoinGr
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
+        snapToGrid
+        snapGrid={[16, 16]}
+        defaultEdgeOptions={{ type: "smoothstep", style: { stroke: "#2f6fe0", strokeWidth: 2 } }}
       >
-        <Background />
+        <Background gap={16} size={1} />
+        <MiniMap pannable zoomable nodeColor="#eaf1fd" maskColor="rgba(10, 31, 61, 0.12)" />
         <Controls />
       </ReactFlow>
     </div>

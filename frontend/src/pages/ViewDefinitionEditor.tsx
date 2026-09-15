@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { JoinGraphCanvas, type JoinGraphTable } from "../components/canvas/JoinGraphCanvas";
 import {
@@ -72,6 +72,7 @@ export function ViewDefinitionEditor() {
   const [joinGraph, setJoinGraph] = useState<JoinGraphEdge[]>([]);
   const [columnMappings, setColumnMappings] = useState<Record<string, ColumnMappingEntry>>({});
   const [error, setError] = useState<string | null>(null);
+  const hydratedVersionId = useRef<string | null>(null);
 
   const definitionQuery = useQuery({
     queryKey: ["view-definition", viewDefinitionId],
@@ -154,6 +155,31 @@ export function ViewDefinitionEditor() {
   const currentVersion = viewDefinitionId
     ? versionsQuery.data?.find((v) => v.id === definitionQuery.data?.current_version_id)
     : undefined;
+
+  // Opening an existing definition must reconstruct the editor from its current immutable
+  // version. Include tables mentioned only in a column mapping as well as tables in joins.
+  useEffect(() => {
+    if (!viewDefinitionId || !currentVersion || hydratedVersionId.current === currentVersion.id) {
+      return;
+    }
+    const tableNames = new Set<string>();
+    for (const edge of currentVersion.join_graph) {
+      tableNames.add(edge.left_table);
+      tableNames.add(edge.right_table);
+    }
+    for (const mapping of currentVersion.column_mappings) {
+      if (mapping.source_table) tableNames.add(mapping.source_table);
+    }
+
+    setSelectedTables([...tableNames]);
+    setJoinGraph(currentVersion.join_graph);
+    setColumnMappings(
+      Object.fromEntries(
+        currentVersion.column_mappings.map((mapping) => [mapping.legacy_column, mapping]),
+      ),
+    );
+    hydratedVersionId.current = currentVersion.id;
+  }, [currentVersion, viewDefinitionId]);
   const legacyColumns = legacyShape?.columns.map((c) => c.name) ?? [];
 
   // Real column names per selected new-schema table, so the mapping row below can

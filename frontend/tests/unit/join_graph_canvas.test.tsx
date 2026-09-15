@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { JoinGraphCanvas } from "../../src/components/canvas/JoinGraphCanvas";
+import { JoinGraphCanvas, layoutJoinGraphNodes } from "../../src/components/canvas/JoinGraphCanvas";
 import { edgesToJoinGraph, joinGraphToEdges } from "../../src/components/canvas/joinEdgeConversion";
 
 describe("JoinGraphCanvas", () => {
@@ -38,8 +38,24 @@ describe("JoinGraphCanvas", () => {
         target: "table:dbo.loan_applicant",
         targetHandle: "dbo.loan_applicant::application_id",
         data: { join_type: "inner" },
+        label: "INNER JOIN",
+        labelStyle: { fill: "#16385e", fontWeight: 700, fontSize: 11 },
+        labelBgStyle: { fill: "#ffffff", fillOpacity: 0.92 },
+        labelBgPadding: [5, 3],
       },
     ]);
+  });
+
+  it("lays out table pairs with enough vertical room for their fields", () => {
+    const nodes = layoutJoinGraphNodes([
+      { name: "dbo.loan_application", columns: Array.from({ length: 12 }, (_, i) => `a${i}`) },
+      { name: "dbo.loan_applicant", columns: Array.from({ length: 4 }, (_, i) => `b${i}`) },
+      { name: "dbo.loan_collateral", columns: ["application_id"] },
+    ]);
+
+    expect(nodes[0].position).toEqual({ x: 0, y: 0 });
+    expect(nodes[1].position).toEqual({ x: 390, y: 0 });
+    expect(nodes[2].position.y).toBeGreaterThan(300);
   });
 
   it("converts edges back into join-graph edges, and removing an edge removes its join", () => {

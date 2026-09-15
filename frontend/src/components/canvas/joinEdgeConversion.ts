@@ -13,6 +13,10 @@ export function joinGraphToEdges(joinGraph: JoinGraphEdge[]): Edge[] {
     target: `table:${edge.right_table}`,
     targetHandle: columnHandleId(edge.right_table, edge.right_column),
     data: { join_type: edge.join_type },
+    label: edge.join_type === "left" ? "LEFT JOIN" : "INNER JOIN",
+    labelStyle: { fill: "#16385e", fontWeight: 700, fontSize: 11 },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.92 },
+    labelBgPadding: [5, 3],
   }));
 }
 
