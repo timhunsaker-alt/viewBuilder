@@ -8,13 +8,14 @@ import {
   type Node,
   Position,
   ReactFlow,
+  type ReactFlowInstance,
   addEdge,
   applyEdgeChanges,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { JoinGraphEdge } from "../../services/api";
 import { edgesToJoinGraph, joinGraphToEdges } from "./joinEdgeConversion";
 
@@ -119,6 +120,7 @@ export function JoinGraphCanvas({ tables, joinGraph, onJoinGraphChange }: JoinGr
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null);
 
   // Table schema responses arrive independently. Preserve an operator's drag position
   // while their column lists fill in, adding only genuinely new tables at a sensible spot.
@@ -135,6 +137,17 @@ export function JoinGraphCanvas({ tables, joinGraph, onJoinGraphChange }: JoinGr
   // A saved view supplies its joins after the editor loads its current version. Keep
   // the canvas synchronized with that external value as well as with newly drawn edges.
   useEffect(() => setEdges(initialEdges), [initialEdges, setEdges]);
+
+  // `fitView` only applies on the first React Flow render by default. Tables can be
+  // selected later and their columns arrive asynchronously, so re-fit after either
+  // change to keep every node—including a fourth or fifth table—in view.
+  useEffect(() => {
+    if (!flowInstance || tables.length === 0) return;
+    const timer = window.setTimeout(() => {
+      flowInstance.fitView({ padding: 0.16, duration: 180 });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [flowInstance, tables]);
 
   const emitJoinGraphFromEdges = useCallback(
     (nextEdges: Edge[]) => onJoinGraphChange(edgesToJoinGraph(nextEdges)),
@@ -180,6 +193,7 @@ export function JoinGraphCanvas({ tables, joinGraph, onJoinGraphChange }: JoinGr
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        onInit={setFlowInstance}
         onNodesChange={onNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}

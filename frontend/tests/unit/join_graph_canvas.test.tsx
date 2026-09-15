@@ -51,11 +51,14 @@ describe("JoinGraphCanvas", () => {
       { name: "dbo.loan_application", columns: Array.from({ length: 12 }, (_, i) => `a${i}`) },
       { name: "dbo.loan_applicant", columns: Array.from({ length: 4 }, (_, i) => `b${i}`) },
       { name: "dbo.loan_collateral", columns: ["application_id"] },
+      { name: "dbo.loan_underwriting", columns: ["application_id", "decision"] },
     ]);
 
     expect(nodes[0].position).toEqual({ x: 0, y: 0 });
     expect(nodes[1].position).toEqual({ x: 390, y: 0 });
     expect(nodes[2].position.y).toBeGreaterThan(300);
+    expect(nodes).toHaveLength(4);
+    expect(nodes[3].position).toEqual({ x: 390, y: nodes[2].position.y });
   });
 
   it("converts edges back into join-graph edges, and removing an edge removes its join", () => {
