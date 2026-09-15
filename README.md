@@ -16,8 +16,10 @@ normalized tables (via a join graph + column mapping on the same canvas), reconc
 view's live output against the still-live old table, and — for anything reconciliation flags
 as missing — looks the value up in a separate legacy XML document table.
 
-Full spec, data model, API contract, and a detailed step-by-step walkthrough for each feature
-live under:
+For setup, navigation, everyday workflows, safety behavior, and local verification, start with
+[the operator guide](GUIDE.md).
+
+Technical design documents and API contracts live under:
 
 **001 — legacy table → new table/view mapping, enum translation, retirement**
 [`specs/001-sql-view-builder/`](specs/001-sql-view-builder/):
@@ -26,9 +28,8 @@ live under:
 - [`plan.md`](specs/001-sql-view-builder/plan.md) — implementation plan and architecture
 - [`data-model.md`](specs/001-sql-view-builder/data-model.md) — metadata store schema
 - [`contracts/api.md`](specs/001-sql-view-builder/contracts/api.md) — backend HTTP API contract
-- [`quickstart.md`](specs/001-sql-view-builder/quickstart.md) — the canonical setup + golden-path
-  walkthrough (this README summarizes it; quickstart.md is the source of truth if the two ever
-  disagree)
+- [`quickstart.md`](specs/001-sql-view-builder/quickstart.md) — focused legacy table mapping
+  walkthrough
 
 **002 — legacy-shape compatibility view, reconciliation, XML fallback**
 [`specs/002-legacy-compat-view/`](specs/002-legacy-compat-view/):
@@ -37,13 +38,8 @@ live under:
 - [`plan.md`](specs/002-legacy-compat-view/plan.md) — implementation plan and architecture
 - [`data-model.md`](specs/002-legacy-compat-view/data-model.md) — metadata store schema
 - [`contracts/api.md`](specs/002-legacy-compat-view/contracts/api.md) — backend HTTP API contract
-- [`quickstart.md`](specs/002-legacy-compat-view/quickstart.md) — the canonical setup +
-  golden-path walkthrough for this feature (source of truth if this README and it ever
-  disagree)
-
-Non-negotiable project principles (dry-run must never write, enum translation must never
-silently guess, retirement is append-only, etc.) are documented in
-[`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+- [`quickstart.md`](specs/002-legacy-compat-view/quickstart.md) — focused compatibility-view
+  walkthrough
 
 ## Prerequisites
 

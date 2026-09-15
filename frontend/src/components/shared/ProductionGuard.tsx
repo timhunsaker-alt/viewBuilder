@@ -17,7 +17,7 @@ interface ProductionGuardProps {
 const CONFIRM_PHRASE = "EXECUTE PRODUCTION";
 
 /**
- * Production-confirmation UI safeguard (T065 / Constitution Principle VII, FR-016).
+ * Production-confirmation UI safeguard (T065 / production-confirmation policy, FR-016).
  *
  * When `isProduction` is false, renders a plain action button — dev/test execution needs
  * no extra ceremony. When `isProduction` is true, the action is hidden behind a distinct

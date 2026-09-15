@@ -38,7 +38,7 @@ const LockIcon = () => (
 
 /**
  * Connection setup screen: create a `connection_config`, choosing between a SQL Server
- * login (username + a secret reference resolved server-side, Constitution Principle VI
+ * login (username + a secret reference resolved server-side, credential-handling policy
  * — the raw secret itself is never round-tripped through this form's own state after
  * submit) or on-prem Windows Integrated Security (the backend's own Windows/AD service
  * identity — see research.md §6 for why true per-end-user Kerberos delegation isn't

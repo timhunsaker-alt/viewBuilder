@@ -37,7 +37,7 @@ class XmlFieldMapping(Base):
 
 class XmlFieldMappingVersion(Base):
     """An immutable set of {legacy_column, xpath, cast_type} entries for one version
-    (Constitution Principle II) — not required to cover every legacy column at once
+    (immutable-version policy) — not required to cover every legacy column at once
     (US4 AC4: added incrementally as columns come under investigation)."""
 
     __tablename__ = "xml_field_mapping_version"

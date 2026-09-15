@@ -2,7 +2,7 @@
 
 Compares a deployed view's live output against its `legacy_shape_capture`'s old
 table, keyed by a user-designated identity column. Strictly read-only against both
-connections it touches (Constitution Principle I) — every query issued here is a
+connections it touches (read-only preview policy) — every query issued here is a
 plain `SELECT`; no code path in this module ever issues UPDATE/DELETE/DROP.
 """
 

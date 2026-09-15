@@ -2,10 +2,10 @@
 compatibility view definition version (FR-005/FR-006/FR-008).
 
 Mirrors `run_orchestrator.py` from 001-sql-view-builder: this module is the seam where
-schema-drift re-checking (FR-013), the production-confirmation gate (Constitution
+schema-drift re-checking (FR-013), the production-confirmation gate (Safety policy
 Principle VII), and `view_deployment_log` persistence all happen. Preview NEVER issues
 DDL — it runs the view's `SELECT` body capped with `TOP N` as an ordinary read-only
-query (Constitution Principle I: reviewable, reversible — a bad preview leaves nothing
+query (read-only preview policy: reviewable, reversible — a bad preview leaves nothing
 behind to revert).
 """
 
@@ -42,7 +42,7 @@ class SchemaMismatchError(Exception):
 
 class ProductionConfirmationRequiredError(Exception):
     """Deploying (CREATE OR ALTER VIEW) against a `prod`-tagged connection without
-    `confirm_production=True` (Constitution Principle VII, mirrors 001's FR-016)."""
+    `confirm_production=True` (production-confirmation policy, mirrors 001's FR-016)."""
 
 
 class DeploymentVerificationError(Exception):
@@ -160,7 +160,7 @@ def deploy_view(
     if touches_production and not confirm_production:
         raise ProductionConfirmationRequiredError(
             f"view definition '{resolved.definition.name}' targets a production connection; "
-            "confirm_production=true is required to deploy (Constitution Principle VII)"
+            "confirm_production=true is required to deploy (production-confirmation policy)"
         )
 
     # US2 AC3 (T034): if a prior version of this same definition was already live

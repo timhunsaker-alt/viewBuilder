@@ -32,6 +32,131 @@ body {
   background: var(--color-bg);
 }
 
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid rgba(219, 226, 238, 0.18);
+  background: var(--color-navy-900);
+  box-shadow: 0 1px 8px rgba(10, 31, 61, 0.2);
+}
+
+.app-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  min-height: 60px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.app-brand:hover {
+  color: #fff;
+}
+
+.app-brand__mark {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--color-blue-500);
+  color: #fff;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+}
+
+.app-menu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-menu__link,
+.app-menu__group summary {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 7px;
+  color: #cfe0ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.app-menu__link:hover,
+.app-menu__group summary:hover,
+.app-menu__link--active {
+  background: rgba(207, 224, 255, 0.14);
+  color: #fff;
+}
+
+.app-menu__group {
+  position: relative;
+}
+
+.app-menu__group summary {
+  list-style: none;
+}
+
+.app-menu__group summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-menu__group summary::after {
+  content: "⌄";
+  margin-left: 7px;
+  font-size: 0.9em;
+}
+
+.app-menu__group[open] summary::after {
+  content: "⌃";
+}
+
+.app-menu__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 205px;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.app-menu__panel .app-menu__link {
+  color: var(--color-ink);
+}
+
+.app-menu__panel .app-menu__link:hover,
+.app-menu__panel .app-menu__link--active {
+  background: var(--color-blue-50);
+  color: var(--color-blue-600);
+}
+
+.app-menu__toggle {
+  display: none;
+  border-color: rgba(207, 224, 255, 0.45);
+  background: transparent;
+  color: #fff;
+}
+
+.app-menu__toggle:hover:not(:disabled) {
+  background: rgba(207, 224, 255, 0.14);
+}
+
 main {
   max-width: 960px;
   margin: 0 auto;
@@ -101,6 +226,112 @@ button:hover:not(:disabled) {
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.view-definitions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.view-definitions-header h1 {
+  margin: 0 0 6px;
+}
+
+.view-definitions-header p {
+  color: var(--color-ink-muted);
+  margin: 0;
+}
+
+.button-link {
+  display: inline-block;
+  flex: none;
+  padding: 10px 18px;
+  border: 1px solid var(--color-navy-800);
+  border-radius: var(--radius-md);
+  background: var(--color-navy-800);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  background: var(--color-navy-700);
+  color: #fff;
+}
+
+.empty-state {
+  padding: 28px 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.empty-state h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 680px) {
+  .app-header__inner {
+    min-height: 56px;
+    padding: 0 16px;
+    flex-wrap: wrap;
+  }
+
+  .app-menu__toggle {
+    display: block;
+    padding: 7px 12px;
+  }
+
+  .app-menu {
+    display: none;
+    width: 100%;
+    padding: 4px 0 12px;
+    border-top: 1px solid rgba(219, 226, 238, 0.18);
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-menu[data-open="true"] {
+    display: flex;
+  }
+
+  .app-menu__link,
+  .app-menu__group summary {
+    padding: 10px 12px;
+  }
+
+  .app-menu__group {
+    width: 100%;
+  }
+
+  .app-menu__panel {
+    position: static;
+    margin: 2px 0 0 12px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .app-menu__panel .app-menu__link {
+    color: #cfe0ff;
+  }
+
+  .app-menu__panel .app-menu__link:hover,
+  .app-menu__panel .app-menu__link--active {
+    background: rgba(207, 224, 255, 0.14);
+    color: #fff;
+  }
+
+  .view-definitions-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 /* ----- Setup screen ----- */

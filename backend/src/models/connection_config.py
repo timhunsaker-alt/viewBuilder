@@ -24,7 +24,7 @@ class ConnectionConfig(Base):
     """A named, reusable reference to a SQL Server database (source or target).
 
     `credential_ref` is an opaque pointer into a secrets store — the raw credential is
-    never stored here and never returned by the API (Constitution Principle VI). It is
+    never stored here and never returned by the API (credential-handling policy). It is
     only meaningful (and required) when `auth_mode="sql"`; `windows_integrated`
     connections need neither `username` nor `credential_ref`.
     """

@@ -5,9 +5,9 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from src.settings import settings
 
-_connect_args = {"check_same_thread": False} if settings.metadata_database_url.startswith(
-    "sqlite"
-) else {}
+_connect_args = (
+    {"check_same_thread": False} if settings.metadata_database_url.startswith("sqlite") else {}
+)
 engine = create_engine(
     settings.metadata_database_url, pool_pre_ping=True, future=True, connect_args=_connect_args
 )

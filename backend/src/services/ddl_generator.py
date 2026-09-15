@@ -29,7 +29,7 @@ translation version's `entries` (resolved by the caller via
 `view_definition_service.resolve_enum_entries` and passed in as
 `enum_entries_by_version`, keyed by `str(version_id)` — this module stays DB-free, so it
 never resolves the version id itself). A source code with no matching entry becomes
-`NULL` rather than the raw untranslated code or a guess (Constitution Principle III) —
+`NULL` rather than the raw untranslated code or a guess (explicit translation policy) —
 the same "flag via NULL, never fabricate" choice already used for Retired columns;
 reconciliation then surfaces any row where that NULL doesn't match what the old table
 actually holds. Because `enum_translation_version` rows are immutable once created
@@ -188,7 +188,7 @@ def build_select_sql(
 ) -> str:
     """The plain `SELECT ...` body (no `CREATE VIEW` wrapper) — used both to build the
     deployed view's definition and, wrapped in a capped `SELECT TOP` by the caller, for
-    a zero-DDL preview query (Constitution Principle I).
+    a zero-DDL preview query (read-only preview policy).
 
     `legacy_columns` is the legacy shape's captured column list — a list of
     `{name, type, nullable}` dicts (data-model.md §legacy_shape_capture) — `type` drives

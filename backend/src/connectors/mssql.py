@@ -1,7 +1,7 @@
 """MS SQL Server connection management: environment-tagged connection resolution,
 opaque credential lookup, and schema introspection.
 
-Constitution Principle VI: this module is the only place raw connection strings are
+credential-handling policy: this module is the only place raw connection strings are
 assembled; `credential_ref` resolves to a secret value here and that value never leaves
 this module (callers get a live SQLAlchemy engine/inspector, never the raw string).
 """

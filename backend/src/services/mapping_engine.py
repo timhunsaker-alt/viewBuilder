@@ -1,7 +1,7 @@
 """Applies a mapping version's column links to a source row, including enum
 translation (FR-007/FR-008).
 
-Constitution Principle III (NON-NEGOTIABLE): a source enum code with no matching entry
+explicit translation policy (NON-NEGOTIABLE): a source enum code with no matching entry
 in its attached translation version is never guessed, defaulted, or dropped silently.
 This module reports it as an "untranslatable column" for the caller to count/flag
 (dry-run preview) or skip (execution) — it never writes a placeholder value for it.

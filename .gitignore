@@ -24,3 +24,14 @@ playwright/.cache/
 
 # OS
 .DS_Store
+
+# Local AI-assistant configuration and instructions
+.claude/
+.specify/
+.codex/
+CLAUDE.md
+AGENTS.md
+CODEX.md
+GEMINI.md
+COPILOT.md
+LLM*.md

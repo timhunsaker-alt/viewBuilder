@@ -14,7 +14,7 @@ class ViewDeploymentLogEntry(Base):
     """One preview or deploy of a specific view_definition_version (FR-005/FR-008).
 
     Analogous to 001's `run_log_entry` but for DDL rather than row-copy: `mode=preview`
-    never executes DDL (Constitution Principle I) — it only runs the generated SELECT
+    never executes DDL (read-only preview policy) — it only runs the generated SELECT
     as a read-only sample query; `mode=deploy` actually executes `CREATE OR ALTER VIEW`.
     """
 

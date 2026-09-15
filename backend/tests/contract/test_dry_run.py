@@ -42,7 +42,7 @@ def test_dry_run_never_writes_and_reports_cleanly_when_connection_unreachable(
     else:
         body = response.json()
         assert body["mode"] == "dry_run"
-        # Constitution Principle I / data-model.md: dry-run always persists 0 actual
+        # read-only preview policy / data-model.md: dry-run always persists 0 actual
         # writes, regardless of how many rows would have been written.
         assert body["target_rows_written"] == 0
         assert body["retirement_records_written"] == 0

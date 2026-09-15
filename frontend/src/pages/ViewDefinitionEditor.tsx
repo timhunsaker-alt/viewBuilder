@@ -255,6 +255,9 @@ export function ViewDefinitionEditor() {
   return (
     <main>
       <h1>{viewDefinitionId ? definitionQuery.data?.name : "New compatibility view"}</h1>
+      <p>
+        <Link to="/view-definitions">← All compatibility views</Link>
+      </p>
 
       {error && <p role="alert">{error}</p>}
 

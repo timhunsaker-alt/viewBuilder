@@ -1,4 +1,4 @@
-"""Unit tests: mapping-version immutability (Constitution Principle II).
+"""Unit tests: mapping-version immutability (immutable-version policy).
 
 Editing a saved mapping MUST create a new mapping_version row and MUST NOT mutate an
 existing one, even indirectly through the ORM session.

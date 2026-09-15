@@ -14,7 +14,7 @@ class RunLogEntry(Base):
     """One dry-run or execution of a specific mapping version (FR-014).
 
     Append-only once `completed_at` is set — re-running always creates a new entry,
-    never updates a prior one (Constitution Principle I).
+    never updates a prior one (read-only preview policy).
     """
 
     __tablename__ = "run_log_entry"

@@ -31,7 +31,7 @@ def _validate_entries(entries: list[dict]) -> None:
 
 class EnumTranslationService:
     """Create/version enum-translation tables (FR-006). Every save creates a new,
-    immutable version — an existing version's entries are never mutated (Constitution
+    immutable version — an existing version's entries are never mutated (Safety policy
     Principle II, applied identically to translation tables as to mappings).
     """
 

@@ -5,7 +5,7 @@ Pushes extraction down as plain T-SQL using SQL Server's native `xml` column
 identity and a `.value()` extraction distinguish all three required outcomes (found /
 field_missing / document_not_found) in at most two lightweight round trips, without
 ever fetching a document's full body. Strictly read-only — every statement issued
-here is a `SELECT` (Constitution Principle I); no code path in this module ever
+here is a `SELECT` (read-only preview policy); no code path in this module ever
 issues UPDATE/DELETE/DROP against the XML store.
 """
 
@@ -40,7 +40,7 @@ class XmlLookupResult:
 def find_field_path(field_paths: list[dict], legacy_column: str) -> dict:
     """US4 AC4: field_paths is not required to cover every legacy column at once —
     only the ones under investigation. Raise loudly (never guess/default) when the
-    requested column has no entry, per Constitution Principle III's spirit."""
+    requested column has no entry, per explicit translation policy's spirit."""
     for entry in field_paths:
         if entry.get("legacy_column") == legacy_column:
             return entry

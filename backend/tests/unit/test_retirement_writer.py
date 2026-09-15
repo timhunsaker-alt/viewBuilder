@@ -1,4 +1,4 @@
-"""Constitution Principle IV (NON-NEGOTIABLE): retirement must never mutate the source
+"""append-only retirement policy (NON-NEGOTIABLE): retirement must never mutate the source
 row — only ever insert a new record into the retirement-audit table. These tests use an
 in-memory SQLite database purely as a lightweight, disposable relational engine to
 exercise `retirement_writer.run_retirement`'s own SQL-issuing behavior (INSERT-only
@@ -92,7 +92,7 @@ def test_retirement_never_mutates_the_source_row():
 
     assert before == after, (
         "the source table must be byte-for-byte unchanged after a retirement run "
-        "(Constitution Principle IV)"
+        "(append-only retirement policy)"
     )
 
 

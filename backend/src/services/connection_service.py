@@ -18,7 +18,7 @@ class ConnectionValidationError(Exception):
 
 class ConnectionService:
     """CRUD over connection_config. Never returns `credential_ref` to a caller
-    (Constitution Principle VI) — callers that need to actually connect should load the
+    (credential-handling policy) — callers that need to actually connect should load the
     ORM row directly via `get` and pass it to src.connectors.mssql, not round-trip through
     a serialized representation.
     """

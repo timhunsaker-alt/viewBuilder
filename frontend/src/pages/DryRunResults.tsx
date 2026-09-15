@@ -38,7 +38,7 @@ interface Connection {
  * Preview of a dry-run (US4) or completed execution (US5). For a dry-run, the "would
  * write" count is derived as source_rows_read - untranslatable_rows_flagged — the
  * persisted target_rows_written/retirement_records_written fields are always 0 for a
- * dry-run (Constitution Principle I: a dry-run performs zero writes).
+ * dry-run (read-only preview policy: a dry-run performs zero writes).
  */
 export function DryRunResults() {
   const { mappingId } = useParams();

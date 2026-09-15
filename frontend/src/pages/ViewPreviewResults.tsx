@@ -131,7 +131,7 @@ export function ViewPreviewResults() {
             <h2>Deploy</h2>
             <p>
               Deploys the exact SQL shown above as a real <code>CREATE OR ALTER VIEW</code>. Nothing
-              is deployed until this step (Constitution Principle I).
+              is deployed until this step (read-only preview policy).
             </p>
             <ProductionGuard
               isProduction={isProduction}

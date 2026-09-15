@@ -43,7 +43,7 @@ class MappingDefinition(Base):
 
 
 class MappingVersion(Base):
-    """An immutable snapshot of a mapping's column links (Constitution Principle II).
+    """An immutable snapshot of a mapping's column links (immutable-version policy).
 
     Once created, a version's `column_links`/`retirement_config` are never mutated — an
     edit always creates a new version referencing the same `mapping_definition_id`.

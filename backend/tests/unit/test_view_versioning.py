@@ -1,6 +1,6 @@
 """Unit test (T030): editing and redeploying a view definition creates a new,
 immutable `view_definition_version` row — an existing version is never mutated
-(Constitution Principle II, FR-007). Exercises `ViewDefinitionService` directly
+(immutable-version policy, FR-007). Exercises `ViewDefinitionService` directly
 (not through the HTTP API) against the Postgres metadata store; no live MS SQL
 Server connection is required since view-definition creation/versioning never opens
 an external database connection (only preview/deploy do).

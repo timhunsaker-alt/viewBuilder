@@ -115,7 +115,7 @@ def test_capture_define_preview_deploy_round_trip(db_session, sample_connection)
     assert preview_log.outcome == "completed"
     with build_engine(sample_connection).connect() as probe:
         exists = probe.execute(text("SELECT OBJECT_ID(:name, 'V')"), {"name": view_name}).scalar()
-    assert exists is None, "preview must never create the view (Constitution Principle I)"
+    assert exists is None, "preview must never create the view (read-only preview policy)"
 
     # 4. Deploy: real CREATE OR ALTER VIEW; introspected shape must match exactly.
     deploy_log = deploy_view(db_session, view_definition_id=definition.id)

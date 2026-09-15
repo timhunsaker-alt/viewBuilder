@@ -1,4 +1,4 @@
-"""Constitution Principle III (NON-NEGOTIABLE): enum translation must never guess,
+"""explicit translation policy (NON-NEGOTIABLE): enum translation must never guess,
 default, or silently drop an unmapped code. These tests prove that property directly
 against the real translation-application code path (mapping_engine.translate_row), not
 just against a mock.

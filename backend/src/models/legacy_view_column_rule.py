@@ -21,7 +21,7 @@ class LegacyViewColumnRule(Base):
     - Historical: reflects data that is fixed/no-longer-updated, kept for reporting.
 
     Never updated once written — a new version's save writes a fresh set of rows
-    (Constitution Principle II: immutable per-version record), so the history of how
+    (immutable-version policy: immutable per-version record), so the history of how
     a column's status changed over time is preserved rather than overwritten.
     """
 

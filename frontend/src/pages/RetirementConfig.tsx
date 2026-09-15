@@ -28,7 +28,7 @@ interface MappingDefinition {
  * Configure a retirement mapping (US3): which status codes mean "retired", where the
  * translated reason comes from, and which target table/columns the audit record is
  * written into. Executing this mapping never updates or deletes the source row
- * (Constitution Principle IV) — it only ever inserts a new audit record.
+ * (append-only retirement policy) — it only ever inserts a new audit record.
  */
 export function RetirementConfig() {
   const location = useLocation();

@@ -1,5 +1,5 @@
 """Contract test (T016): `POST /view-definitions/{id}/preview` returns the generated
-SQL + sample rows and performs zero DDL — Constitution Principle I. Verified by
+SQL + sample rows and performs zero DDL — read-only preview policy. Verified by
 confirming no new database object (specifically, the would-be view name) exists
 immediately after the preview call. Requires a live seeded MS SQL Server fixture;
 skips cleanly (does not fail) when one isn't reachable in this sandbox, matching the

@@ -102,4 +102,4 @@ def test_dry_run_writes_nothing_at_all_even_for_translatable_rows():
     assert result.target_rows_written == 2  # "would write" count, internal to this function
     with target_engine.connect() as target_conn:
         written = list(target_conn.execute(select(target_account)).all())
-    assert written == [], "dry_run must never write to the target table (Constitution Principle I)"
+    assert written == [], "dry_run must never write to the target table (read-only preview policy)"

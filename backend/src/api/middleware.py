@@ -34,7 +34,7 @@ def log_audit_event(
     `POST /enum-translations`, `POST /enum-translations/{id}/versions`,
     `POST /mappings/{id}/dry-run`, `POST /mappings/{id}/execute`) — captures who did it
     (`operator`), what happened (`action`), and which mapping/translation version was
-    involved, per Constitution Principle I/II (every migration-relevant action must be
+    involved, per read-only preview policy/II (every migration-relevant action must be
     reconstructable after the fact). This is deliberately a plain structured log line
     (not a DB write) — the durable, queryable record of *runs* is `run_log_entry`
     (FR-014); this line is the audit trail for the *definitional* mutations (creating/

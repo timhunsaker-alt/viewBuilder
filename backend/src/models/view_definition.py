@@ -46,7 +46,7 @@ class ViewDefinition(Base):
 
 class ViewDefinitionVersion(Base):
     """An immutable snapshot of a view definition's join graph + column mappings +
-    generated SQL (Constitution Principle II). A version, once referenced by any
+    generated SQL (immutable-version policy). A version, once referenced by any
     `view_deployment_log` entry, MUST NOT be mutated by any update endpoint.
     """
 

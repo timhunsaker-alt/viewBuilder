@@ -1,6 +1,6 @@
 """Writes retirement audit records into the *target* database (FR-009/FR-010).
 
-Constitution Principle IV (NON-NEGOTIABLE): retirement must never be implemented as an
+append-only retirement policy (NON-NEGOTIABLE): retirement must never be implemented as an
 in-place update or delete of the source row. This module enforces that by construction:
 `source_conn` is only ever passed to `select(...)` — no `update()`/`delete()` statement
 against the source table is built anywhere in this module. `target_conn` is only ever

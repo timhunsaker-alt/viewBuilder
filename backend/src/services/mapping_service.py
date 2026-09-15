@@ -17,7 +17,7 @@ class MappingValidationError(Exception):
 
 class MappingService:
     """Create/version mapping definitions. Every save creates a new, immutable
-    mapping_version row — an existing version is never mutated (Constitution Principle II).
+    mapping_version row — an existing version is never mutated (immutable-version policy).
     """
 
     def __init__(self, db: Session):

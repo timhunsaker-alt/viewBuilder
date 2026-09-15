@@ -207,7 +207,7 @@ def resolve_enum_entries(db: Session, column_mappings: list[dict]) -> dict[str, 
 class ViewDefinitionService:
     """Create/version compatibility view definitions. Every save creates a new,
     immutable `view_definition_version` row — an existing version is never mutated
-    (Constitution Principle II).
+    (immutable-version policy).
     """
 
     def __init__(self, db: Session):

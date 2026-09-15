@@ -9,7 +9,7 @@ pre-flight schema-drift check (FR-015), and persisting the run_log_entry (FR-014
 Per data-model.md's run_log_entry field notes, `target_rows_written` and
 `retirement_records_written` are always persisted as 0 for `mode="dry_run"` — those
 fields mean "actually written". A caller wanting the dry-run "would write" count derives
-it as `source_rows_read - untranslatable_rows_flagged` (Constitution Principle I: a
+it as `source_rows_read - untranslatable_rows_flagged` (read-only preview policy: a
 dry-run performs zero writes, so persisting a non-zero write count under that mode would
 misrepresent what happened).
 """
@@ -273,7 +273,7 @@ def run_mapping(
     except IntegrityError as exc:
         # The connection and query were both fine — the target database itself
         # rejected a specific row (NOT NULL/PK/FK/CHECK). This is a data problem the
-        # operator needs to see clearly, not a connectivity problem (Constitution
+        # operator needs to see clearly, not a connectivity problem (Safety policy
         # Principle I: reviewable migrations require accurate failure diagnostics).
         # Must be caught before the broader DBAPIError below, since IntegrityError is
         # itself a DBAPIError subclass.

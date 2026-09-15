@@ -180,7 +180,7 @@ def test_rule_rows_are_never_updated_only_appended(
     db_session, sample_connection, sample_legacy_shape
 ):
     """Direct DB-level check that no code path updates an existing rule row: the count
-    of distinct ids only grows across saves, matching Constitution Principle II's
+    of distinct ids only grows across saves, matching immutable-version policy's
     immutable-version-append discipline extended to this governance table."""
     service = ViewDefinitionService(db_session)
     definition = service.create_view_definition(
